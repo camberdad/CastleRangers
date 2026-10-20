@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>PROBE</title></head>
+<body style="background:#111;color:#eee;font-family:monospace">
+<iframe id="f" src="index.html?demo" style="width:1300px;height:780px;border:0"></iframe>
+<pre id="out" style="padding:8px"></pre>
+<script>
+setTimeout(function () {
+  var lines = [];
+  try {
+    var w = document.getElementById('f').contentWindow;
+    lines.push('state=' + w.state);
+    lines.push('hoverActive=' + w.hoverActive + ' aimActive=' + w.aimActive);
+    lines.push('aimPower=' + (Math.round(w.aimPower * 100) / 100) + ' recoil=' + (Math.round(w.recoil * 100) / 100));
+    lines.push('aimDX=' + Math.round(w.aimDX) + ' aimDY=' + Math.round(w.aimDY));
+    lines.push('keep=' + (w.keep ? Math.round(w.keep.hp) + '/' + Math.round(w.keep.maxHp) + ' destroyed=' + w.keep.destroyed + ' stuck=' + w.keep.stuck.length : 'null'));
+    lines.push('castleHP=' + Math.round(w.castleHP) + ' enemies=' + w.enemies.length + ' arrows=' + w.arrows.length);
+    lines.push('qi=' + w.qi + '/' + w.spawnQ.length + ' elapsed=' + Math.round(w.elapsed) + ' cooldown=' + (Math.round(w.shotCooldown * 100) / 100));
+    lines.push('showTraj=' + (w.state === 'playing' && w.SETTINGS.trajectory && (w.isAuto() ? (w.hoverActive && !!w.lastSolve) : (w.aimActive && w.aimPower > 0.06))));
+  } catch (e) { lines.push('ERR ' + e.message); }
+  var t = lines.join(' | ');
+  document.title = t;
+  document.getElementById('out').textContent = t;
+}, 11000);
+</script>
+</body></html>

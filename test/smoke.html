@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>SMOKE</title></head>
+<body style="background:#111;color:#ddd;font-family:monospace">
+<pre id="out" style="padding:12px"></pre>
+
+<!-- ===== copy of index.html stage DOM (kept in sync manually) ===== -->
+<div id="stage" style="position:relative;width:1280px;height:720px">
+  <canvas id="game" width="1280" height="720"></canvas>
+  <div id="hud" class="hidden">
+    <div id="hudTop">
+      <div class="hpCol">
+        <div class="hpWrap"><span class="label">CASTLE</span><div class="bar"><div id="hpFill"></div><span id="hpText"></span></div></div>
+        <div class="hpWrap"><span class="label">CASTLE</span><div class="bar"><div id="keepFill"></div><span id="keepText"></span></div></div>
+      </div>
+      <div id="levelInfo"><span id="lvlName"></span><span id="waveInfo"></span></div>
+      <div class="stats">
+        <div class="stat">Score <b id="scoreVal">0</b></div>
+        <div class="stat">Gold <b id="goldVal">0</b></div>
+        <div class="stat" id="fpsWrap">FPS <b id="fpsVal">0</b></div>
+      </div>
+    </div>
+    <div id="hudBottom">
+      <div id="ammoBar"></div>
+      <div id="powerWrap" class="hidden"><div id="powerFill"></div></div>
+      <button id="pauseBtn" class="btn small">II</button>
+    </div>
+    <div id="toast"></div>
+  </div>
+  <div id="screen-profiles" class="screen hidden"><div class="panel narrow"><h2>Choose Your Archer</h2><div id="profileList" class="profileList"></div><div class="newProfile"><input id="newProfileName" type="text" maxlength="16" placeholder="New name..."><button id="newProfileBtn" class="btn gold">New User</button></div><div class="panelBtns"><button class="btn" data-action="menu">Back</button></div></div></div>
+  <div id="screen-title" class="screen">
+    <div class="titleBox">
+      <h1><span class="t1">CASTLE</span><span class="t2">RANGERS</span></h1>
+      <p class="tagline">Hold the wall</p>
+      <div class="menu">
+        <button class="btn big gold" data-action="play">Play</button>
+        <button class="btn" data-action="levels">Level Select</button>
+        <button class="btn" data-action="armory">Armory</button>
+        <button class="btn" data-action="settings">Settings</button>
+        <button class="btn" data-action="howto">How to Play</button>
+      </div>
+      <div class="titleFoot"><span id="titlePlayer"></span> &middot; <span id="titleGold">0</span> gold &middot; Next: <span id="titleNext">Level 1</span></div>
+    </div>
+  </div>
+  <div id="screen-levels" class="screen hidden"><div class="panel wide"><h2>Campaign Map</h2><div id="levelGrid"></div><div class="panelBtns"><button class="btn" data-action="menu">Back</button></div></div></div>
+  <div id="screen-armory" class="screen hidden"><div class="panel wide"><h2>Armory <span id="armoryGold"></span></h2><div id="arrowGrid"></div><div class="panelBtns"><button class="btn" data-action="menu">Back</button></div></div></div>
+  <div id="screen-settings" class="screen hidden">
+    <div class="panel">
+      <h2>Settings</h2>
+      <div class="row"><label for="setFps">Frames per second</label><select id="setFps"><option value="30">30 FPS</option><option value="60">60 FPS</option><option value="120">120 FPS</option><option value="0">Unlimited</option></select></div>
+      <div class="row"><label for="setFpsCounter">Show FPS counter</label><input type="checkbox" id="setFpsCounter"></div>
+      <div class="row"><label for="setBlood">Blood amount</label><select id="setBlood"><option value="0">None</option><option value="1">Low</option><option value="2">Medium</option><option value="3">High</option></select></div>
+      <div class="row"><label for="setDiff">Difficulty</label><select id="setDiff"><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></div>
+      <div class="row"><label for="setShootStyle">Shooting style</label><select id="setShootStyle"><option value="auto">Auto-aim (click target)</option><option value="drag">Drag &amp; release</option></select></div>
+      <div class="row"><label for="setTraj">Show aim trajectory</label><input type="checkbox" id="setTraj"></div>
+      <div class="row"><label for="setDmgNums">Show damage numbers</label><input type="checkbox" id="setDmgNums"></div>
+      <div class="row"><label for="setShake">Screen shake</label><input type="checkbox" id="setShake"></div>
+      <div class="row"><label for="setVol">Sound volume</label><input type="range" id="setVol" min="0" max="100" step="5"><span id="volVal" class="rangeVal">70</span></div>
+      <div class="row"><label for="setMute">Mute sound</label><input type="checkbox" id="setMute"></div>
+      <div class="panelBtns"><button id="resetProgress" class="btn danger small">Reset Progress</button><button class="btn" data-action="settingsBack">Back</button></div>
+    </div>
+  </div>
+  <div id="screen-howto" class="screen hidden"><div class="panel"><h2>How to Play</h2><div class="howText"><p>x</p></div><div class="panelBtns"><button class="btn" data-action="menu">Back</button></div></div></div>
+  <div id="screen-pause" class="screen hidden"><div class="panel narrow"><h2>Paused</h2><div class="menu"><button class="btn gold" data-action="resume">Resume</button><button class="btn" data-action="pauseSettings">Settings</button><button class="btn" data-action="quit">Quit to Menu</button></div></div></div>
+  <div id="screen-win" class="screen hidden">
+    <div class="panel narrow">
+      <h2 class="victory">Victory!</h2>
+      <div id="winStars" class="stars"></div>
+      <div class="resultLines">
+        <div class="rline">Level <b id="winLevel"></b></div>
+        <div class="rline">Score <b id="winScore"></b></div>
+        <div class="rline">Gold earned <b id="winGold"></b></div>
+        <div class="rline muted" id="winCastle">Castle: <b></b></div>
+      </div>
+      <div class="menu"><button class="btn gold" data-action="next" id="nextBtn">Next Level</button><button class="btn" data-action="replay">Replay</button><button class="btn" data-action="menu">Menu</button></div>
+    </div>
+  </div>
+  <div id="screen-lose" class="screen hidden">
+    <div class="panel narrow">
+      <h2 class="defeat">The Wall Has Fallen</h2>
+      <div class="resultLines">
+        <div class="rline">You reached level <b id="loseLevel"></b></div>
+        <div class="rline">Score <b id="loseScore"></b></div>
+        <div class="rline muted">Kills <b id="loseKills"></b></div>
+      </div>
+      <div class="menu"><button class="btn gold" data-action="retry">Try Again</button><button class="btn" data-action="menu">Menu</button></div>
+    </div>
+  </div>
+</div>
+<style>.hidden{display:none!important}</style>
+
+<script>
+window.__fails = 0;
+function log(s) { document.getElementById('out').textContent += s + '\n'; }
+function ok(s) { log('ok  - ' + s); }
+function fail(s) { window.__fails++; log('FAIL - ' + s); }
+window.onerror = function (msg, src, line, col, err) {
+  fail('JS ERROR: ' + msg + (err && err.stack ? ' | ' + err.stack : ''));
+};
+</script>
+<script src="../js/data.js" onload="ok('data.js loaded')" onerror="fail('data.js LOAD ERROR')"></script>
+<script src="../js/audio.js" onload="ok('audio.js loaded')" onerror="fail('audio.js LOAD ERROR')"></script>
+<script src="../js/draw.js" onload="ok('draw.js loaded')" onerror="fail('draw.js LOAD ERROR')"></script>
+<script src="../js/game.js" onload="ok('game.js loaded')" onerror="fail('game.js LOAD ERROR')"></script>
+<script>
+function pump(n) { for (var i = 0; i < n; i++) { step(1 / 60); render(); } }
+
+function run() {
+  try {
+    if (typeof LEVELS === 'undefined' || typeof startLevel !== 'function') {
+      fail('globals missing - scripts did not load');
+      return finish();
+    }
+    ok('scripts loaded');
+
+    if (LEVELS.length !== 60) fail('expected 60 levels, got ' + LEVELS.length);
+    else ok('60 levels');
+    for (var i = 0; i < LEVELS.length; i++) {
+      var b = buildSpawnQueue(LEVELS[i]);
+      if (b.queue.length < 4) fail('level ' + (i + 1) + ' has thin spawn queue');
+      for (var k = 0; k < b.queue.length; k++) {
+        if (!ENEMIES[b.queue[k].type]) fail('level ' + (i + 1) + ' unknown enemy: ' + b.queue[k].type);
+      }
+    }
+    ok('all spawn queues valid');
+
+    // menu builders
+    buildLevelGrid(); buildArmory(); buildAmmoBar(); updateHUD();
+    ok('UI builders ran');
+
+    // player profiles
+    if (typeof Player === 'undefined') fail('Player global missing');
+    else {
+      var made = Player.create('TestArcher');
+      if (made !== 'TestArcher' || Player.current !== 'TestArcher') fail('Player.create failed');
+      else ok('profile created: ' + Player.current);
+      PROGRESS.gold = 777; PROGRESS.unlocked = 5; saveProgress();
+      Player.load('TestArcher');
+      if (PROGRESS.gold !== 777 || PROGRESS.unlocked !== 5) fail('profile did not persist progress');
+      else ok('profile persists gold/unlocked');
+      Player.create('SecondGuy');
+      if (Player.names().length < 2) fail('expected 2+ profiles');
+      Player.load('TestArcher');
+      if (PROGRESS.gold !== 777) fail('profile isolation broken');
+      else ok('profiles isolated from each other');
+      PROGRESS.gold = 0; PROGRESS.unlocked = 1; saveProgress();
+    }
+
+    // start level 1
+    startLevel(0);
+    if (state !== 'playing') fail('level did not start');
+    else ok('level 1 started');
+
+    // enemy keep: second objective initialized at the gate
+    if (typeof keep === 'undefined' || !keep) fail('keep state missing after startLevel');
+    else if (typeof KEEP_BOX === 'undefined' || !KEEP_BOX.gateX) fail('KEEP_BOX missing');
+    else if (keep.hp !== keep.maxHp || keep.hp <= 0) fail('keep hp wrong: ' + keep.hp + '/' + keep.maxHp);
+    else if (keep.destroyed) fail('keep starts destroyed');
+    else ok('keep initialized: hp=' + Math.round(keep.hp) + '/' + Math.round(keep.maxHp));
+    spawnEnemy('raider');
+    var ke = enemies[enemies.length - 1];
+    if (ke.x < KEEP_BOX.x || ke.x > KEEP_BOX.x + KEEP_BOX.w + 60) fail('enemy spawned away from keep gate: x=' + ke.x);
+    else ok('enemies march out of the keep gate, x=' + Math.round(ke.x));
+    enemies.length = 0;
+
+    // enemy visibility: after spawning, enemies must walk into the visible viewport
+    SETTINGS.shootStyle = 'drag'; // no auto-fire so enemies stay alive
+    var sawVisible = false, spawnCount = 0;
+    for (var f = 0; f < 2400 && !sawVisible; f++) { // up to 40s
+      step(1 / 60);
+      if (enemies.length > spawnCount) spawnCount = enemies.length;
+      for (var v = 0; v < enemies.length; v++) {
+        var ev = enemies[v];
+        if (ev.state !== 'dying' && ev.hp > 0) {
+          var sx = ev.x * VIEW_SCALE, sy = GROUND * VIEW_SCALE;
+          if (sx > 0 && sx < 1280 && sy > 0 && sy < 720) { sawVisible = true; break; }
+        }
+      }
+    }
+    if (!sawVisible) fail('no enemy ever appeared on screen (spawned=' + spawnCount + ')');
+    else ok('enemy walked on-screen, spawned=' + spawnCount + ' at t~' + (f / 60).toFixed(1) + 's');
+    SETTINGS.shootStyle = 'auto';
+
+    // arrow lodges in the keep and chips its health
+    startLevel(0);
+    var keepBefore = keep.hp;
+    arrows.push({ x: KEEP_BOX.x + 120, y: KEEP_BOX.top + 60, vx: 0, vy: 10, rot: 1.57, type: 'std', dmg: 34, power: 1, pierceLeft: 0, lastHitUid: -1, dead: false });
+    pump(4);
+    if (keep.hp >= keepBefore) fail('arrow did not damage the keep');
+    else if (keep.stuck.length < 1) fail('arrow did not lodge in the keep stonework');
+    else ok('arrow damages keep: hp=' + Math.round(keep.hp) + '/' + Math.round(keep.maxHp) + ' stuck=' + keep.stuck.length);
+    arrows.length = 0;
+
+    // destroying the keep grants bonus gold + score
+    var gk = runGold, sk = score;
+    destroyKeep();
+    if (!keep.destroyed) fail('destroyKeep did not mark keep destroyed');
+    else if (runGold <= gk) fail('destroyKeep granted no gold');
+    else if (score <= sk) fail('destroyKeep granted no score');
+    else ok('keep destroy grants +' + (runGold - gk) + 'g, +' + (score - sk) + ' score');
+
+    // fire a shot (drag style)
+    SETTINGS.shootStyle = 'drag';
+    aimActive = true; updateAimFrom(420, 600); fireArrow(); aimActive = false;
+    if (arrows.length !== 1) fail('expected 1 arrow, got ' + arrows.length);
+    else ok('arrow fired, power=' + aimPower.toFixed(2));
+
+    // triple shot
+    PROGRESS.owned.push('triple'); PROGRESS.equipped = 'triple';
+    aimActive = true; updateAimFrom(500, 620); fireArrow(); aimActive = false;
+    if (arrows.length < 4) fail('triple shot should create 3 arrows, total=' + arrows.length);
+    else ok('triple shot created volley');
+    PROGRESS.equipped = 'std';
+
+    // auto-aim style (new default)
+    if (SETTINGS.shootStyle !== 'auto' && DEFAULT_SETTINGS.shootStyle !== 'auto') fail('auto-aim is not the default style');
+    else ok('auto-aim is default style');
+    SETTINGS.shootStyle = 'auto';
+    arrows.length = 0; shotCooldown = 0;
+    var sol = solveBallistic(700, 560);
+    if (!sol) fail('solveBallistic returned null for an on-field target');
+    else {
+      // verify ballistic accuracy: simulate to x
+      var sx = BOW.x, sy = BOW.y, svx = sol.vx, svy = sol.vy, sdt = 1 / 120, okSol = false;
+      for (var s = 0; s < 600; s++) {
+        svy += GRAVITY * sdt; sx += svx * sdt; sy += svy * sdt;
+        if (Math.abs(sx - 700) < 12 && Math.abs(sy - 560) < 12) { okSol = true; break; }
+        if (sy > GROUND) break;
+      }
+      if (!okSol) fail('ballistic solution missed target: vx=' + sol.vx.toFixed(0) + ' vy=' + sol.vy.toFixed(0));
+      else ok('auto-aim solves ballistic trajectory');
+    }
+    autoFire(700, 560);
+    if (arrows.length < 1) fail('autoFire did not create an arrow');
+    else ok('autoFire loosed arrow, cooldown=' + shotCooldown.toFixed(2));
+    autoFire(700, 560);
+    if (arrows.length > 1) fail('cooldown did not block rapid auto-fire');
+    else ok('shot cooldown blocks spam');
+    shotCooldown = 0; arrows.length = 0;
+
+    // new arrows exist with correct fields
+    ['poison', 'pierce', 'explosive', 'frost', 'cluster', 'chain', 'holy', 'gatling',
+     'fan', 'homing', 'sunder', 'glacial', 'shrapnel', 'leech'].forEach(function (id) {
+      if (!ARROWS[id]) fail('missing arrow: ' + id);
+      else if (!ARROWS[id].cadence) fail('arrow ' + id + ' missing cadence');
+      else if (ARROW_ORDER.indexOf(id) < 0) fail('arrow ' + id + ' not in ARROW_ORDER');
+    });
+    if (ARROW_ORDER.length !== 18) fail('expected 18 arrows in order, got ' + ARROW_ORDER.length);
+    else ok('18 arrows in order');
+
+    // --- new arrow mechanics ---
+    // fan fires a 5-arrow volley
+    startLevel(0);
+    arrows.length = 0; shotCooldown = 0;
+    PROGRESS.equipped = 'fan';
+    aimActive = true; updateAimFrom(500, 600); fireArrow(); aimActive = false;
+    if (arrows.length !== 5) fail('fan volley should loose 5 arrows, got ' + arrows.length);
+    else ok('fan volley looses 5 arrows');
+    PROGRESS.equipped = 'std'; arrows.length = 0; shotCooldown = 0;
+
+    // leech restores castle health
+    startLevel(0);
+    castleHP = 40; castleMax = 100;
+    spawnEnemy('raider');
+    var el2 = enemies[enemies.length - 1];
+    el2.x = 900;
+    arrows.push({ x: el2.x + el2.w / 2 - 8, y: GROUND - el2.h * 0.5, vx: 700, vy: 0, rot: 0,
+      type: 'leech', dmg: 50, power: 1, leech: 0.4, pierceLeft: 0, lastHitUid: -1 });
+    pump(3);
+    if (castleHP <= 40) fail('leech arrow did not heal the castle (hp=' + Math.round(castleHP) + ')');
+    else ok('leech arrow heals castle to ' + Math.round(castleHP));
+
+    // glacial nova chills nearby enemies
+    startLevel(0);
+    spawnEnemy('raider');
+    spawnEnemy('brute');
+    var eN = enemies[enemies.length - 1];   // struck target (soaks the hit)
+    var eN2 = enemies[enemies.length - 2];  // bystander within the nova radius
+    eN.x = 900; eN2.x = 950;
+    arrows.push({ x: eN.x + eN.w / 2, y: GROUND - eN.h * 0.5, vx: 600, vy: 0, rot: 0,
+      type: 'glacial', dmg: 5, power: 1, nova: ARROWS.glacial.nova, pierceLeft: 0, lastHitUid: -1 });
+    pump(3);
+    var chilled = 0;
+    for (var ci = 0; ci < enemies.length; ci++) if (enemies[ci].slow > 0) chilled++;
+    if (chilled < 1) fail('glacial nova chilled no enemies');
+    else ok('glacial nova chilled ' + chilled + ' enemies');
+
+    // sunder applies an armor-crack debuff
+    startLevel(0);
+    spawnEnemy('captain');
+    var eS = enemies[enemies.length - 1];
+    arrows.push({ x: eS.x + eS.w / 2 - 8, y: GROUND - eS.h * 0.5, vx: 600, vy: 0, rot: 0,
+      type: 'sunder', dmg: 30, power: 1, sunder: ARROWS.sunder.sunder, pierceLeft: 0, lastHitUid: -1 });
+    pump(3);
+    if (!(eS.sunder > 0)) fail('sunder arrow did not apply armor crack');
+    else if (eS.sunderMult <= 1) fail('sunder did not amplify damage taken');
+    else ok('sunder cracks armor, takes x' + eS.sunderMult.toFixed(2) + ' damage');
+
+    // shrapnel bursts into shards on impact
+    startLevel(0);
+    spawnEnemy('brute');
+    var eSh = enemies[enemies.length - 1];
+    eSh.x = 900;
+    var shBefore = arrows.length;
+    arrows.push({ x: eSh.x + eSh.w / 2, y: GROUND - eSh.h * 0.5, vx: 500, vy: 10, rot: 1.4,
+      type: 'shrapnel', dmg: 40, power: 1, shatter: ARROWS.shrapnel.shatter, pierceLeft: 0, lastHitUid: -1 });
+    pump(3);
+    if (arrows.length <= 1) fail('shrapnel did not burst into shards (arrows=' + arrows.length + ')');
+    else ok('shrapnel bursts into ' + arrows.length + ' shards');
+
+    // homing arrow bends toward a target
+    startLevel(0);
+    spawnEnemy('raider');
+    var eH = enemies[enemies.length - 1];
+    eH.x = 1400;
+    arrows.length = 0;
+    arrows.push({ x: 500, y: 600, vx: 900, vy: -400, rot: -0.4,
+      type: 'homing', dmg: 40, power: 1, homing: true, pierceLeft: 0, lastHitUid: -1 });
+    var dy0 = arrows[0].vy;
+    pump(12);
+    if (arrows.length && Math.abs(arrows[0].vy - dy0) < 5) fail('homing arrow did not steer');
+    else ok('homing arrow steers toward foes');
+    arrows.length = 0;
+
+    // captain enemy
+    if (!ENEMIES.captain) fail('missing captain enemy');
+    else if (!ENEMIES.captain.armor) fail('captain has no armor');
+    else ok('captain enemy defined with armor');
+
+    // pierce arrow passes through, explosive detonates
+    startLevel(0);
+    spawnEnemy('raider');
+    var e0 = enemies[enemies.length - 1];
+    e0.x = 900;
+    var px = e0.x + e0.w / 2, py = GROUND - e0.h * 0.5;
+    arrows.push({ x: px - 10, y: py, vx: 900, vy: 0, rot: 0, type: 'pierce', dmg: 50, power: 1, pierceLeft: 3, lastHitUid: -1, dead: false });
+    pump(6);
+    if (arrows.length !== 1) fail('pierce arrow should survive first hit (left=' + (arrows[0] ? arrows[0].pierceLeft : 'gone') + ')');
+    else ok('pierce arrow penetrates, pierceLeft=' + arrows[0].pierceLeft);
+    arrows.length = 0;
+
+    spawnEnemy('brute');
+    var e1 = enemies[enemies.length - 1];
+    arrows.push({ x: e1.x + e1.w / 2, y: GROUND - e1.h * 0.5, vx: 0, vy: 10, rot: 1.57, type: 'explosive', dmg: 34, power: 1, explode: ARROWS.explosive.explode, pierceLeft: 0, lastHitUid: -1, dead: false });
+    var nBefore = enemies.length;
+    pump(6);
+    if (arrows.length !== 0) fail('explosive arrow did not detonate');
+    else ok('explosive arrow detonates, enemies=' + nBefore + '->' + enemies.length);
+
+    // poison burn kind
+    spawnEnemy('raider');
+    var ep = enemies[enemies.length - 1];
+    ep.burn = 2; ep.burnDps = 13; ep.burnTick = 0.3; ep.burnKind = 'poison';
+    pump(30);
+    if (ep.hp >= ep.maxHp) fail('poison burn did no damage');
+    else ok('poison DOT ticks, hp=' + Math.round(ep.hp) + '/' + Math.round(ep.maxHp));
+
+    // new mechanics: coins for castle damage, frost slow, cluster split, chain lightning, holy armor-pierce
+    startLevel(0);
+    var g1 = runGold;
+    damageKeep(50, KEEP_BOX.x + 100, KEEP_BOX.top + 50);
+    if (runGold <= g1) fail('castle damage should award coins');
+    else ok('castle damage awards coins: +' + (runGold - g1) + 'g');
+
+    // frost slow
+    startLevel(0);
+    spawnEnemy('raider');
+    var ef = enemies[enemies.length - 1];
+    arrows.push({
+      x: ef.x + ef.w / 2, y: GROUND - ef.h * 0.5, vx: 600, vy: 0, rot: 0,
+      type: 'frost', dmg: 25, power: 1, slow: { factor: 0.4, dur: 2 }, lastHitUid: -1
+    });
+    pump(3);
+    if (ef.slow <= 0) fail('frost arrow did not slow enemy');
+    else ok('frost arrow applies slow: factor=' + ef.slowFactor + ' dur=' + ef.slow.toFixed(2));
+
+    // holy pierces armor
+    startLevel(0);
+    spawnEnemy('captain');
+    var eh = enemies[enemies.length - 1];
+    var hpCapBefore = eh.hp;
+    arrows.push({
+      x: eh.x + eh.w / 2 - 10, y: GROUND - eh.h * 0.5, vx: 800, vy: 0, rot: 0,
+      type: 'holy', dmg: 60, power: 1, holy: true, pierceLeft: 0, lastHitUid: -1
+    });
+    pump(4);
+    if (eh.hp >= hpCapBefore - 20) fail('holy arrow should shred armor/boss; hp=' + eh.hp + '/' + eh.maxHp);
+    else ok('holy arrow smites armored foe, hp=' + eh.hp + '/' + hpCapBefore);
+
+    // shootStyle persistence
+    SETTINGS.shootStyle = 'drag'; saveSettings();
+    var ss = JSON.parse(localStorage.getItem('cr_settings'));
+    if (!ss || ss.shootStyle !== 'drag') fail('shootStyle did not persist');
+    else ok('shootStyle persists');
+    SETTINGS.shootStyle = 'auto'; saveSettings();
+
+    pump(600); // 10s
+    ok('10s simulated: qi=' + qi + '/' + spawnQ.length + ' enemies=' + enemies.length + ' castleHP=' + Math.round(castleHP) + ' keep=' + (keep ? Math.round(keep.hp) + '/' + Math.round(keep.maxHp) : 'null') + ' arrows=' + arrows.length + ' decals=' + decals.length);
+
+    // victory is blocked until the keep falls
+    startLevel(0);
+    var wg = 0;
+    while (state === 'playing' && wg++ < 40) {
+      elapsed = 1e9; // force all remaining spawns
+      pump(20);
+      var lv2 = enemies.slice();
+      for (var q2 = 0; q2 < lv2.length; q2++) {
+        if (lv2[q2].state !== 'dying') damageEnemy(lv2[q2], 1e6, {});
+      }
+      pump(60);
+    }
+    if (state !== 'playing') fail('expected win to be blocked on the keep, state=' + state);
+    else if (keep.destroyed) fail('keep unexpectedly destroyed');
+    else if (el.toast.textContent !== 'Destroy the enemy castle!') fail('missing keep nag toast, got "' + el.toast.textContent + '"');
+    else ok('win blocked until keep falls (nag toast shown)');
+    destroyKeep();
+    pump(120);
+    if (state === 'win') ok('victory fires once the keep is razed: score=' + score + ' gold=' + runGold);
+    else fail('no win after keep destroyed: state=' + state);
+
+    // force through remaining waves by damaging everything
+    startLevel(0);
+    var guard = 0;
+    while (state === 'playing' && guard++ < 60) {
+      elapsed = 1e9; // force all remaining spawns
+      pump(30);
+      var live = enemies.slice();
+      for (var j = 0; j < live.length; j++) {
+        if (live[j].state !== 'dying') damageEnemy(live[j], 1e6, {});
+      }
+      if (keep && !keep.destroyed) destroyKeep();
+      pump(90);
+    }
+    if (state === 'win') ok('level won: score=' + score + ' gold=' + runGold + ' stars=' + JSON.stringify(PROGRESS.stars));
+    else if (state === 'lose') ok('level lost during sim (castleHP=' + castleHP + ')');
+    else fail('level unfinished: state=' + state + ' qi=' + qi + '/' + spawnQ.length + ' enemies=' + enemies.length);
+
+    // defeat path
+    startLevel(1); castleHP = 1; castleHit(99);
+    if (state !== 'lose') fail('defeat did not trigger');
+    else ok('defeat triggers');
+
+    // every theme renders
+    for (var th in THEMES) {
+      drawBackground(ctx, th, 1); drawGround(ctx, th);
+      if (THEMES[th].rain) drawRain(ctx, 1);
+      if (THEMES[th].night) drawNightShade(ctx);
+    }
+    drawVignette(ctx);
+    drawCastle(ctx, 0.6, 0.4, 1);
+    drawEnemyCastle(ctx, { hp: 120, maxHp: 300, flash: 0.5, destroyed: false, stuck: [] }, 1);
+    drawEnemyCastle(ctx, { hp: 0, maxHp: 300, flash: 0, destroyed: true, stuck: [] }, 1);
+    drawArcher(ctx, { t: 1, aiming: true, power: 0.9, dirX: 0.7, dirY: -0.7, arrowId: 'fire', recoil: 0.4 });
+    ok('all themes + castle + keep + archer render');
+
+    // every enemy type renders (walk + attack/dying)
+    for (var type in ENEMIES) {
+      var def = ENEMIES[type];
+      var base = { type: type, def: def, x: 400, y: GROUND, w: def.w, h: def.h, hp: def.hp, maxHp: def.hp, walkT: 1, t: 1, shotAnim: 0.2, burn: 0 };
+      base.stuckArrow = { dx: 5, dy: -42, rot: 0.7, fletch: '#e2e2e2' };
+      base.state = 'walk'; drawEnemy(ctx, base);
+      base.state = 'attack'; base.attackT = 0.65; drawEnemy(ctx, base);
+      base.state = 'shoot'; drawEnemy(ctx, base);
+      base.state = 'dying'; base.deathT = 0.3; base.deathRot = 0.4; base.alpha = 0.9; drawEnemy(ctx, base);
+    }
+    ok('all enemy types render in all states');
+
+    // settings persistence
+    SETTINGS.blood = 3; SETTINGS.fps = 120; SETTINGS.difficulty = 'hard';
+    saveSettings();
+    var raw = localStorage.getItem('cr_settings');
+    if (!raw || JSON.parse(raw).blood !== 3 || JSON.parse(raw).fps !== 120) fail('settings did not persist');
+    else ok('settings persist');
+    SETTINGS.blood = 2; SETTINGS.fps = 60; SETTINGS.difficulty = 'normal'; saveSettings();
+
+    // progress persistence
+    PROGRESS.gold = 999; saveProgress();
+    var pr = JSON.parse(localStorage.getItem('cr_progress'));
+    if (!pr || pr.gold !== 999) fail('progress did not persist');
+    else ok('progress persists');
+    PROGRESS.gold = 0; saveProgress();
+
+  } catch (e) {
+    fail('exception: ' + (e && e.stack ? e.stack : e));
+  }
+  finish();
+}
+
+function finish() {
+  log(window.__fails ? ('SMOKE TEST FAILED (' + window.__fails + ')') : 'SMOKE TEST PASSED');
+  document.title = window.__fails ? 'FAILED' : 'PASSED';
+}
+
+window.addEventListener('load', function () { setTimeout(run, 40); });
+</script>
+</body>
+</html>
+
