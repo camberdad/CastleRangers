@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Castle Rangers</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="stage">
+  <canvas id="game" width="1280" height="720"></canvas>
+
+  <div id="hud" class="hidden">
+    <div id="hudTop">
+      <div class="hpCol">
+        <div class="hpWrap">
+          <span class="label">CASTLE</span>
+          <div class="bar"><div id="hpFill"></div><span id="hpText"></span></div>
+        </div>
+        <div class="hpWrap">
+          <span class="label">CASTLE</span>
+          <div class="bar"><div id="keepFill"></div><span id="keepText"></span></div>
+        </div>
+      </div>
+      <div id="levelInfo">
+        <span id="lvlName"></span>
+        <span id="waveInfo"></span>
+      </div>
+      <div class="stats">
+        <div class="stat">Score <b id="scoreVal">0</b></div>
+        <div class="stat">Gold <b id="goldVal">0</b></div>
+        <div class="stat" id="fpsWrap">FPS <b id="fpsVal">0</b></div>
+      </div>
+    </div>
+    <div id="hudBottom">
+      <div id="ammoBar"></div>
+      <div id="powerWrap" class="hidden"><div id="powerFill"></div></div>
+      <button id="pauseBtn" class="btn small" title="Pause (P)">&#10074;&#10074;</button>
+    </div>
+    <div id="toast"></div>
+  </div>
+
+  <!-- ============ PROFILE SELECT ============ -->
+  <div id="screen-profiles" class="screen hidden">
+    <div class="panel narrow">
+      <h2>Choose Your Archer</h2>
+      <div id="profileList" class="profileList"></div>
+      <div class="newProfile">
+        <input id="newProfileName" type="text" maxlength="16" placeholder="New name...">
+        <button id="newProfileBtn" class="btn gold">New User</button>
+      </div>
+      <div class="panelBtns">
+        <button class="btn" data-action="menu">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TITLE ============ -->
+  <div id="screen-title" class="screen">
+    <div class="titleBox">
+      <h1><span class="t1">CASTLE</span><span class="t2">RANGERS</span></h1>
+      <p class="tagline">Hold the wall &mdash; loose your arrows</p>
+      <div class="menu">
+        <button class="btn big gold" data-action="play">Play</button>
+        <button class="btn" data-action="levels">Level Select</button>
+        <button class="btn" data-action="armory">Armory</button>
+        <button class="btn" data-action="profiles">Switch Player</button>
+        <button class="btn" data-action="settings">Settings</button>
+        <button class="btn" data-action="howto">How to Play</button>
+      </div>
+      <div class="titleFoot"><span id="titlePlayer"></span> &middot; <span id="titleGold">0</span> gold &middot; Next: <span id="titleNext">Level 1</span></div>
+    </div>
+  </div>
+
+  <!-- ============ LEVEL SELECT ============ -->
+  <div id="screen-levels" class="screen hidden">
+    <div class="panel wide">
+      <h2>Campaign Map</h2>
+      <div id="levelGrid"></div>
+      <div class="panelBtns">
+        <button class="btn" data-action="menu">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ARMORY ============ -->
+  <div id="screen-armory" class="screen hidden">
+    <div class="panel wide">
+      <h2>Armory <span class="goldText" id="armoryGold"></span></h2>
+      <div id="arrowGrid"></div>
+      <div class="panelBtns">
+        <button class="btn" data-action="menu">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS ============ -->
+  <div id="screen-settings" class="screen hidden">
+    <div class="panel">
+      <h2>Settings</h2>
+      <div class="row">
+        <label for="setFps">Frames per second</label>
+        <select id="setFps">
+          <option value="30">30 FPS</option>
+          <option value="60">60 FPS</option>
+          <option value="120">120 FPS</option>
+          <option value="0">Unlimited</option>
+        </select>
+      </div>
+      <div class="row">
+        <label for="setFpsCounter">Show FPS counter</label>
+        <input type="checkbox" id="setFpsCounter">
+      </div>
+      <div class="row">
+        <label for="setBlood">Blood amount</label>
+        <select id="setBlood">
+          <option value="0">None</option>
+          <option value="1">Low</option>
+          <option value="2">Medium</option>
+          <option value="3">High</option>
+        </select>
+      </div>
+      <div class="row">
+        <label for="setDiff">Difficulty</label>
+        <select id="setDiff">
+          <option value="easy">Easy</option>
+          <option value="normal">Normal</option>
+          <option value="hard">Hard</option>
+        </select>
+      </div>
+      <div class="row">
+        <label for="setShootStyle">Shooting style</label>
+        <select id="setShootStyle">
+          <option value="auto">Auto-aim (click target)</option>
+          <option value="drag">Drag &amp; release</option>
+        </select>
+      </div>
+      <div class="row">
+        <label for="setTraj">Show aim trajectory</label>
+        <input type="checkbox" id="setTraj">
+      </div>
+      <div class="row">
+        <label for="setDmgNums">Show damage numbers</label>
+        <input type="checkbox" id="setDmgNums">
+      </div>
+      <div class="row">
+        <label for="setShake">Screen shake</label>
+        <input type="checkbox" id="setShake">
+      </div>
+      <div class="row">
+        <label for="setVol">Sound volume</label>
+        <input type="range" id="setVol" min="0" max="100" step="5">
+        <span id="volVal" class="rangeVal">70</span>
+      </div>
+      <div class="row">
+        <label for="setMute">Mute sound</label>
+        <input type="checkbox" id="setMute">
+      </div>
+      <div class="panelBtns">
+        <button id="resetProgress" class="btn danger small">Reset Progress</button>
+        <button class="btn" data-action="settingsBack">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ HOW TO PLAY ============ -->
+  <div id="screen-howto" class="screen hidden">
+    <div class="panel">
+      <h2>How to Play</h2>
+      <div class="howText">
+        <p><b>Aim &amp; fire (auto-aim, default):</b> move the mouse where you want the arrow to land and click &mdash; the archer looses a shot that arcs right to that spot. Watch the trajectory dots and fire again when the power bar refills.</p>
+        <p><b>Aim &amp; fire (classic drag):</b> switch shooting style in Settings, then press and hold the mouse anywhere, drag <i>away</i> from your target to draw the bow, and release to loose. The farther you drag, the farther the arrow flies.</p>
+        <p><b>Headshots</b> deal massive damage. Shield-bearers block arrows from the front &mdash; wait for openings or use brute force. Captains wear armor that soaks up damage.</p>
+        <p><b>Protect the castle.</b> Enemies that reach the wall will hack at it. If the castle falls, the level is lost. Arrows can also be fired straight into the stone.</p>
+        <p><b>Destroy the enemy castle.</b> The enemy host pours out of the dark keep on the right &mdash; you must bring their castle down to win the level. Aim at it to chip its health, lodge arrows in the walls, and finish it with a blast arrow. Its health bar sits in the HUD and above the castle itself.</p>
+        <p><b>Keys:</b> <span class="key">1</span>&ndash;<span class="key">9</span> &middot; <span class="key">0</span> &middot; <span class="key">-</span> &middot; <span class="key">=</span> &middot; <span class="key">[</span> &middot; <span class="key">]</span> switch arrows (all 18) &middot; <span class="key">P</span> pause &middot; <span class="key">Esc</span> pause</p>
+        <p><b>Progress:</b> earn gold, buy better arrows in the Armory, and unlock the next level with every victory. Stars are awarded for how much castle health remains. Revisit any unlocked level from the Campaign Map to farm extra gold.</p>
+      </div>
+      <div class="panelBtns"><button class="btn" data-action="menu">Back</button></div>
+    </div>
+  </div>
+
+  <!-- ============ PAUSE ============ -->
+  <div id="screen-pause" class="screen hidden">
+    <div class="panel narrow">
+      <h2>Paused</h2>
+      <div class="menu">
+        <button class="btn gold" data-action="resume">Resume</button>
+        <button class="btn" data-action="pauseSettings">Settings</button>
+        <button class="btn" data-action="quit">Quit to Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ VICTORY ============ -->
+  <div id="screen-win" class="screen hidden">
+    <div class="panel narrow">
+      <h2 class="victory">Victory!</h2>
+      <div id="winStars" class="stars"></div>
+      <div class="resultLines">
+        <div class="rline">Level <b id="winLevel"></b> cleared</div>
+        <div class="rline">Score <b id="winScore"></b></div>
+        <div class="rline">Gold earned <b id="winGold" class="goldText"></b></div>
+        <div class="rline muted" id="winCastle">Castle: <b></b></div>
+      </div>
+      <div class="menu">
+        <button class="btn gold" data-action="next" id="nextBtn">Next Level</button>
+        <button class="btn" data-action="replay">Replay</button>
+        <button class="btn" data-action="menu">Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DEFEAT ============ -->
+  <div id="screen-lose" class="screen hidden">
+    <div class="panel narrow">
+      <h2 class="defeat">The Wall Has Fallen</h2>
+      <div class="resultLines">
+        <div class="rline">You reached level <b id="loseLevel"></b></div>
+        <div class="rline">Score <b id="loseScore"></b></div>
+        <div class="rline muted">Kills <b id="loseKills"></b></div>
+      </div>
+      <div class="menu">
+        <button class="btn gold" data-action="retry">Try Again</button>
+        <button class="btn" data-action="menu">Menu</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/draw.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
