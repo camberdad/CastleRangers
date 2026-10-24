@@ -51,7 +51,7 @@ var keep = null, keepSmokeT = 0;   // enemy keep (second objective)
 var score = 0, runGold = 0, kills = 0, arrowsShot = 0;
 var elapsed = 0, spawnQ = [], waves = [], qi = 0;
 var aimActive = false, aimX = 0, aimY = 0, aimPower = 0, aimDX = 1, aimDY = -0.12;
-var shotCooldown = 0, hoverActive = false, lastSolve = null, uidSeq = 0;
+var shotCooldown = 0, hoverActive = false, lastSolve = null, uidSeq = 0, fireHeld = false;
 var recoil = 0, shake = 0, lightFlash = 0, smokeT = 0;
 var ambT = 0, introT = 0, lastWaveShown = 0;
 var fpsCount = 0, fpsTime = 0;
@@ -227,7 +227,7 @@ function startLevel(idx0) {
   keepSmokeT = 0;
   score = 0; runGold = 0; kills = 0; arrowsShot = 0; elapsed = 0;
   aimActive = false; aimPower = 0; aimDX = 1; aimDY = -0.12; recoil = 0;
-  shotCooldown = 0; hoverActive = false; lastSolve = null;
+  shotCooldown = 0; hoverActive = false; lastSolve = null; fireHeld = false;
   shake = 0; lightFlash = 0; smokeT = 0; lastWaveShown = 1;
   state = 'playing';
   hideAllScreens(); show(el.hud);
@@ -371,6 +371,7 @@ function buildArmory() {
     var powerLevel = getArrowUpgradeLevel(id);
     var powerMult = getArrowPowerMultiplier(id);
     var stats = 'Damage <b>' + Math.round(ar.dmg * powerMult) + '</b> · Power <b>' + powerLevel + '/' + MAX_ARROW_UPGRADES + '</b>';
+    if (ar.auto) stats += ' · <b>hold cursor button to fire</b>';
     if (ar.burn) stats += ' · ' + (ar.poison ? 'Poison' : 'Burn') + ' <b>' + Math.round(ar.burn.dps * powerMult) + '/s</b> for <b>' + ar.burn.dur + 's</b>';
     if (ar.spread) stats += ' · <b>' + (ar.spreadCount || 3) + ' arrows</b> per shot';
     if (ar.pierce) stats += ' · pierces <b>' + ar.pierce + '</b> enemies';
@@ -528,6 +529,7 @@ function updateHover(px, py) {
 cv.addEventListener('mousedown', function (e) {
   Sound.resume();
   if (state !== 'playing') return;
+  if (PROGRESS.equipped === 'gatling') { fireHeld = true; return; }
   var p = toWorld(e.clientX, e.clientY);
   if (isAuto()) {
     hoverActive = true;
@@ -548,8 +550,9 @@ window.addEventListener('mousemove', function (e) {
     updateAimFrom(p.x, p.y);
   }
 });
-cv.addEventListener('mouseleave', function () { hoverActive = false; lastSolve = null; });
+cv.addEventListener('mouseleave', function () { hoverActive = false; lastSolve = null; fireHeld = false; });
 window.addEventListener('mouseup', function () {
+  fireHeld = false;
   if (isAuto() || !aimActive) return;
   if (aimPower > 0.1 && state === 'playing') fireArrow();
   aimActive = false;
@@ -560,6 +563,7 @@ cv.addEventListener('touchstart', function (e) {
   if (state !== 'playing') return;
   var t = e.touches[0];
   var p = toWorld(t.clientX, t.clientY);
+  if (PROGRESS.equipped === 'gatling') { fireHeld = true; return; }
   if (isAuto()) {
     autoFire(p.x, p.y);
   } else {
@@ -575,10 +579,13 @@ window.addEventListener('touchmove', function (e) {
   updateAimFrom(p.x, p.y);
 }, { passive: false });
 window.addEventListener('touchend', function () {
+  fireHeld = false;
   if (isAuto() || !aimActive) return;
   if (aimPower > 0.1 && state === 'playing') fireArrow();
   aimActive = false;
 });
+window.addEventListener('touchcancel', function () { fireHeld = false; aimActive = false; });
+window.addEventListener('blur', function () { fireHeld = false; aimActive = false; });
 cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
 window.addEventListener('keydown', function (e) {
@@ -602,7 +609,7 @@ window.addEventListener('keydown', function (e) {
 function pauseGame() {
   if (state !== 'playing') return;
   state = 'paused';
-  aimActive = false;
+  aimActive = false; fireHeld = false;
   show($('screen-pause'));
 }
 function resumeGame() {
@@ -963,10 +970,10 @@ function update(dt) {
   updateTexts(dt);
   updateDecals(dt);
 
-  // gatling/auto automatic fire: while equipped, shoot at best target if cooldown ready
+  // Gatling fires at its best target only while the cursor button is held.
   var eq = PROGRESS.equipped;
   var arEq = ARROWS[eq] || ARROWS.std;
-  if (state === 'playing' && arEq.auto && shotCooldown <= 0) {
+  if (state === 'playing' && arEq.auto && fireHeld && shotCooldown <= 0) {
     var best = null, bestDist = 1e12;
     for (var i = 0; i < enemies.length; i++) {
       var de = enemies[i];
