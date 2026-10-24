@@ -352,6 +352,7 @@ function equipArrow(id) {
 
 var MAX_ARROW_UPGRADES = 5;
 var ARROW_UPGRADE_DAMAGE_PER_LEVEL = 0.15;
+var ARMORY_PRICE_MULTIPLIER = 1.2;
 function getArrowUpgradeLevel(id) {
   return clamp(Math.floor(Number(PROGRESS.upgrades && PROGRESS.upgrades[id]) || 0), 0, MAX_ARROW_UPGRADES);
 }
@@ -361,7 +362,10 @@ function getArrowPowerMultiplier(id) {
 function getArrowUpgradeCost(id, level) {
   var ar = ARROWS[id];
   var baseCost = Math.max(60, Math.round((ar.cost || 100) * 0.08));
-  return baseCost * (level + 1);
+  return Math.round(baseCost * ARMORY_PRICE_MULTIPLIER) * (level + 1);
+}
+function getArrowPurchaseCost(id) {
+  return Math.round(ARROWS[id].cost * ARMORY_PRICE_MULTIPLIER);
 }
 
 function buildArmory() {
@@ -377,7 +381,7 @@ function buildArmory() {
     var tag = '';
     if (eq) tag = '<span class="aTag">EQUIPPED</span>';
     else if (owned) tag = '<span class="aTag">OWNED</span>';
-    else tag = '<span class="aTag">' + ar.cost + 'g</span>';
+    else tag = '<span class="aTag">' + getArrowPurchaseCost(id) + 'g</span>';
 
     var powerLevel = getArrowUpgradeLevel(id);
     var powerMult = getArrowPowerMultiplier(id);
@@ -406,10 +410,11 @@ function buildArmory() {
       btn.textContent = 'Equip';
       btn.addEventListener('click', function () { equipArrow(id); buildArmory(); });
     } else {
-      btn.textContent = 'Buy — ' + ar.cost + 'g';
-      btn.disabled = PROGRESS.gold < ar.cost;
+      var arrowCost = getArrowPurchaseCost(id);
+      btn.textContent = 'Buy — ' + arrowCost + 'g';
+      btn.disabled = PROGRESS.gold < arrowCost;
       if (!btn.disabled) btn.addEventListener('click', function () {
-        PROGRESS.gold -= ar.cost;
+        PROGRESS.gold -= arrowCost;
         PROGRESS.owned.push(id);
         PROGRESS.equipped = id;
         saveProgress();
