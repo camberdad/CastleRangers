@@ -4,11 +4,13 @@
 
 Castle Rangers is a browser-based castle-defense game. Aim and fire magical arrows, earn coins, upgrade your armory, and defend your keep through 300 rounds. Player profiles keep progress between updates, and the global leaderboard tracks scores, levels, arrows fired, cumulative kills, and active playtime.
 
-### Latest update — V27
+### Latest update — V28
 
-- Raises every arrow purchase price by about 21% over V26, while keeping the starting Standard arrow free. Power upgrade prices stay at their V26 rates.
+- Raises all arrow prices by 30% over V27. Late-game arrows (unlock Round 20 and later) cost an additional 50% over that increase. The starting Standard arrow stays free; power upgrade prices are unchanged.
 
 ## Previous updates
+
+- **V27 — Arrow prices:** Raises arrow purchase prices by about 21% over V26 while leaving power upgrade prices unchanged.
 
 - **V26 — Higher Armory prices:** Raises arrow purchase and power upgrade prices by 20%; Standard remains free.
 
