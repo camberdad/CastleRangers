@@ -148,7 +148,7 @@ function buildHighScores(scores, online, reason) {
   var note = document.createElement('div');
   note.className = 'hsNote';
   if (online) {
-    note.textContent = 'Global board — ' + scores.length + ' run' + (scores.length === 1 ? '' : 's') + ' ranked. Total playtime syncs about every 15 seconds during active play.';
+    note.textContent = 'Global board — live run stats and total playtime sync about every 15 seconds during active play.';
   } else if (Leaderboard.configured()) {
     note.textContent = 'Could not reach the global board — showing this device’s local scores.';
   } else {
@@ -176,7 +176,7 @@ function buildHighScores(scores, online, reason) {
 
   scores.slice(0, 100).forEach(function (s, i) {
     var row = document.createElement('div');
-    row.className = 'hsRow' + (Player.current && s.name === Player.current ? ' hsMine' : '');
+    row.className = 'hsRow' + (Player.current && s.name === Player.current ? ' hsMine' : '') + (s.active ? ' hsActive' : '');
     row.innerHTML = '<span class="hsRank">' + (i + 1) + '</span>' +
       '<span class="hsName"></span>' +
       '<span class="hsScore">' + (s.score || 0) + '</span>' +
@@ -187,7 +187,7 @@ function buildHighScores(scores, online, reason) {
       '<span class="hsMeta"></span>';
     row.querySelector('.hsName').textContent = s.name || 'Guest';
     var meta = row.querySelector('.hsMeta');
-    meta.textContent = (s.won ? '★'.repeat(Math.max(1, s.stars || 1)) + ' won' : 'fell') +
+    meta.textContent = (s.active ? 'In progress' : (s.won ? '★'.repeat(Math.max(1, s.stars || 1)) + ' won' : 'fell')) +
       ' · ' + (s.kills || 0) + ' kills';
     table.appendChild(row);
   });
@@ -925,7 +925,17 @@ function step(dt) {
 
 function update(dt) {
   elapsed += dt * 1000;
-  Leaderboard.trackTime(Player.current || 'Guest', dt);
+  Leaderboard.trackTime(Player.current || 'Guest', dt, {
+    score: score,
+    gold: (PROGRESS.gold || 0) + runGold,
+    level: Math.max(levelIdx + 1, Math.max(1, (Number(PROGRESS.unlocked) || 1) - 1)),
+    stars: 0,
+    kills: kills || 0,
+    shots: arrowsShot,
+    arrow: (PROGRESS.equipped || 'std'),
+    diff: (SETTINGS && SETTINGS.difficulty) || 'normal',
+    won: false
+  });
 
   // storm lightning
   if (level.theme === 'storm') {
