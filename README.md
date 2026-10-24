@@ -4,12 +4,14 @@
 
 Castle Rangers is a browser-based castle-defense game. Aim and fire magical arrows, earn coins, upgrade your armory, and defend your keep through 300 rounds. Player profiles keep progress between updates, and the global leaderboard tracks scores, levels, arrows fired, cumulative kills, and active playtime.
 
-### Latest update — V22
+### Latest update — V23
 
-- Randomly selects from 11 map palettes at the start of each round or replay, and avoids repeating the previous sky.
-- Adds multiple sunsets plus dawn, violet dusk, aurora, moonlit, storm, and daylight skies. Each palette also changes the sun or moon, clouds, mountains, hills, and ground.
+- Applies a detected game update automatically when returning to the title screen, with an animated progress bar and green completion checkmark.
+- Adds a cache-busting version URL to the automatic update handoff so browsers load the new scripts and styles without requiring a manual refresh.
 
 ## Previous updates
+
+- **V22 — Random map skies:** Randomly selects from 11 map palettes at the start of each round or replay, and avoids repeating the previous sky. Adds multiple sunsets plus dawn, violet dusk, aurora, moonlit, storm, and daylight skies.
 
 - **V21 — Elite wave progression:** Starts with one elite on Round 6 and increases the number at five-round intervals, reaching five by Round 26. Elite-only waves continue through the later campaign, with broader enemy variety appearing in regular waves sooner.
 - **V20 — Cumulative leaderboard stats:** Counts every enemy kill toward a per-player total, saves kills locally as they happen, and syncs kills and active playtime to the global board about every five seconds. Active playtime is saved locally each second.
