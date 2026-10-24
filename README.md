@@ -4,12 +4,13 @@
 
 Castle Rangers is a browser-based castle-defense game. Aim and fire magical arrows, earn coins, upgrade your armory, and defend your keep through 300 rounds. Player profiles keep progress between updates, and the global leaderboard tracks scores, levels, arrows fired, cumulative kills, and active playtime.
 
-### Latest update — V24
+### Latest update — V25
 
-- Makes every arrow in the Armory available to buy with coins from the start, removing level locks while keeping each arrow's coin price.
-- Keeps each arrow's five power upgrades purchasable with coins after buying that arrow.
+- Makes storm map lightning flash only once every 18–36 seconds, with a shorter flash, so it happens occasionally without repeatedly brightening the whole screen.
 
 ## Previous updates
+
+- **V24 — Coin armory:** Makes all arrows available for coin purchase from the start and keeps five coin powered damage upgrades for each owned arrow.
 
 - **V23 — Automatic updates:** Installs detected updates when returning to the title screen, with a progress bar, completion checkmark, and cache-busted handoff.
 
