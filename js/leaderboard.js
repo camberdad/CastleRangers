@@ -54,8 +54,11 @@ var Leaderboard = (function () {
   function localSet(data) { Store.set(LOCAL_KEY, data); }
 
   var TIME_KEY = 'cr_total_play_time';
+  var KILL_KEY = 'cr_total_enemy_kills';
   var timeState = Store.get(TIME_KEY, { players: {} });
   if (!timeState || !timeState.players) timeState = { players: {} };
+  var killState = Store.get(KILL_KEY, { players: {} });
+  if (!killState || !killState.players) killState = { players: {} };
   Object.keys(timeState.players).forEach(function (key) {
     timeState.players[key].syncing = false;
     timeState.players[key].retryAt = 0;
@@ -69,6 +72,73 @@ var Leaderboard = (function () {
   }
 
   function playerKey(name) { return String(name || 'Guest').trim().toLowerCase() || 'guest'; }
+  function killRecord(name) {
+    var key = playerKey(name);
+    if (!killState.players[key]) {
+      var cached = localGet().scores.find(function (s) { return playerKey(s.name) === key; });
+      killState.players[key] = {
+        total: Math.max(0, Math.floor(Number(cached && cached.kills) || 0)),
+        pending: 0, ready: !configured() || typeof fetch !== 'function', loading: false, retryAt: 0
+      };
+    }
+    var rec = killState.players[key];
+    rec.total = Math.max(0, Math.floor(Number(rec.total) || 0));
+    rec.pending = Math.max(0, Math.floor(Number(rec.pending) || 0));
+    if (rec.ready == null) rec.ready = !configured() || typeof fetch !== 'function';
+    return rec;
+  }
+  function saveKillState() {
+    var saved = { players: {} };
+    Object.keys(killState.players).forEach(function (key) {
+      var rec = killState.players[key];
+      saved.players[key] = { total: rec.total, pending: rec.pending };
+    });
+    Store.set(KILL_KEY, saved);
+  }
+  function prepareKills(name) {
+    var rec = killRecord(name);
+    if (rec.ready || rec.loading || !configured() || typeof fetch !== 'function' || Date.now() < rec.retryAt) return;
+    rec.loading = true;
+    var pendingAtStart = rec.pending;
+    var localBase = Math.max(0, rec.total - pendingAtStart);
+    fetch(syncUrl(), { headers: headers(), cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+      .then(function (d) {
+        if (rec.ready) return;
+        var scores = d && d.record && Array.isArray(d.record.scores) ? d.record.scores : (d && Array.isArray(d.scores) ? d.scores : []);
+        var row = scores.find(function (s) { return playerKey(s.name) === playerKey(name); });
+        var remoteBase = Math.max(0, Math.floor(Number(row && row.kills) || 0));
+        rec.total = Math.max(remoteBase, localBase) + rec.pending;
+        rec.pending = Math.max(0, rec.total - remoteBase);
+        rec.ready = true;
+        rec.loading = false;
+        saveKillState();
+        persistRemoteStats(name, playerTime(name));
+      })
+      .catch(function () {
+        rec.loading = false;
+        rec.retryAt = Date.now() + 10000;
+      });
+  }
+  function recordKill(name) {
+    var rec = killRecord(name);
+    rec.total++;
+    rec.pending++;
+    saveKillState();
+    prepareKills(name);
+  }
+  function getTotalKills(name) {
+    var rec = killRecord(name);
+    prepareKills(name);
+    return rec.total;
+  }
+  function acceptRemoteKills(name, savedTotal) {
+    var rec = killRecord(name);
+    savedTotal = Math.max(0, Math.floor(Number(savedTotal) || 0));
+    rec.total = Math.max(rec.total, savedTotal);
+    if (rec.ready) rec.pending = Math.max(0, rec.total - savedTotal);
+    saveKillState();
+  }
   function playerTime(name) {
     var key = playerKey(name);
     if (!timeState.players[key]) {
@@ -100,11 +170,15 @@ var Leaderboard = (function () {
     scores.forEach(function (row) {
       var rec = timeState.players[playerKey(row.name)];
       if (rec) row.timePlayed = Math.max(Number(row.timePlayed) || 0, Math.floor(rec.total));
+      var kills = killState.players[playerKey(row.name)];
+      if (kills) row.kills = Math.max(Number(row.kills) || 0, Number(kills.total) || 0);
     });
     return scores;
   }
   function persistRemoteStats(name, rec) {
-    if (!configured() || typeof fetch !== 'function' || rec.syncing || rec.pending < 15 || Date.now() < rec.retryAt || !rec.snapshot) return;
+    if (!configured() || typeof fetch !== 'function' || rec.syncing || rec.pending < 5 || Date.now() < rec.retryAt || !rec.snapshot) return;
+    var kills = killRecord(name);
+    if (!kills.ready) prepareKills(name);
     rec.syncing = true;
     var entry = Object.assign({}, rec.snapshot, {
       name: name,
@@ -112,14 +186,14 @@ var Leaderboard = (function () {
       active: true
     });
     submit(entry, function (ok) {
-      rec.retryAt = ok ? 0 : Date.now() + 15000;
+      rec.retryAt = ok ? 0 : Date.now() + 5000;
       rec.syncing = false;
     });
   }
   function trackTime(name, dt, snapshot) {
     dt = Number(dt);
     if (!isFinite(dt) || dt <= 0) return;
-    dt = Math.min(dt, 1);
+    dt = Math.min(dt, 30);
     var rec = playerTime(name);
     if (snapshot) rec.snapshot = snapshot;
     rec.total += dt;
@@ -249,6 +323,18 @@ var Leaderboard = (function () {
         .then(function (d) {
           var scores = d && d.record && Array.isArray(d.record.scores) ? d.record.scores : (d && Array.isArray(d.scores) ? d.scores : []);
           scores = scores.map(sanitize);
+          var killRec = killRecord(entry.name);
+          if (!killRec.ready) {
+            var oldRow = scores.find(function (row) { return playerKey(row.name) === playerKey(entry.name); });
+            var oldRemoteKills = Math.max(0, Math.floor(Number(oldRow && oldRow.kills) || 0));
+            var localBase = Math.max(0, killRec.total - killRec.pending);
+            killRec.total = Math.max(oldRemoteKills, localBase) + killRec.pending;
+            killRec.pending = Math.max(0, killRec.total - oldRemoteKills);
+            killRec.ready = true;
+            killRec.loading = false;
+            saveKillState();
+          }
+          entry.kills = Math.max(Number(entry.kills) || 0, killRec.total);
           scores.push(entry);
           scores = oneRunPerPlayer(scores);
           if (scores.length > LEADERBOARD_CONFIG.MAX_ENTRIES) scores = scores.slice(0, LEADERBOARD_CONFIG.MAX_ENTRIES);
@@ -263,6 +349,7 @@ var Leaderboard = (function () {
       localSet({ scores: scores });
       var savedRow = scores.find(function (row) { return playerKey(row.name) === playerKey(entry.name); });
       if (savedRow) acceptPlayedTime(entry.name, savedRow.timePlayed);
+      if (savedRow) acceptRemoteKills(entry.name, savedRow.kills);
       cb(true, scores, '');
     })
       .catch(function () { cb(false, localGet().scores, 'offline'); });
@@ -273,6 +360,8 @@ var Leaderboard = (function () {
     fetchBoard: fetchBoard,
     submit: submit,
     trackTime: trackTime,
+    recordKill: recordKill,
+    getTotalKills: getTotalKills,
     getPlayedTime: getPlayedTime,
     localBoard: function () { return oneRunPerPlayer(localGet().scores); },
     lastName: function () { return Player && Player.current ? Player.current : 'Guest'; }
