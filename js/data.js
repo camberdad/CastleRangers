@@ -196,10 +196,11 @@ var ARROWS = {
     desc: 'Radiant bolt pierces one foe, ignores armor, and smites bosses.'
   },
   gatling: {
-    id: 'gatling', name: 'Gatling Launcher', icon: '╳', dmg: 18, cost: 4800, unlock: 50, speed: 1.2, cadence: 0.12,
+    id: 'gatling', name: 'Gatling Launcher', icon: '╳', dmg: 9, cost: 4800, unlock: 75, speed: 1.0, cadence: 0.3,
     spread: true,
+    spreadCount: 3,
     auto: true,
-    desc: 'Rapid-fire barrel looses a flurry. Great at keeping crowds pinned.'
+    desc: 'Hold the cursor button to fire a light three-arrow burst. Best for sustained pressure.'
   },
   fan: {
     id: 'fan', name: 'Fan Volley', icon: '❖', dmg: 24, cost: 850, unlock: 12, speed: 1, cadence: 0.78,
@@ -228,7 +229,7 @@ var ARROWS = {
     desc: 'A vampiric rune drains its target and sends half the damage back to your castle.'
   }
 };
-var ARROW_ORDER = ['std', 'broad', 'fire', 'triple', 'poison', 'frost', 'pierce', 'fan', 'explosive', 'cluster', 'homing', 'chain', 'sunder', 'holy', 'glacial', 'leech', 'gatling'];
+var ARROW_ORDER = ['std', 'broad', 'fire', 'triple', 'poison', 'frost', 'pierce', 'fan', 'explosive', 'cluster', 'homing', 'chain', 'glacial', 'holy', 'sunder', 'leech', 'gatling'];
 
 /* ---------------- Enemies ---------------- */
 var ENEMIES = {
