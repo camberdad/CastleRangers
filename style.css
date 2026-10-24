@@ -441,3 +441,21 @@ canvas#game {
 ::-webkit-scrollbar-track { background: #14100a; }
 ::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 5px; }
 
+/* Live update notice (shown while a new build waits for a safe reload). */
+.gameUpdateNotice {
+  position: fixed;
+  z-index: 9999;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 24px);
+  padding: 10px 16px;
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  background: rgba(25, 18, 10, .96);
+  color: var(--parch);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, .6);
+  font: 14px Georgia, 'Times New Roman', serif;
+  text-align: center;
+}
+

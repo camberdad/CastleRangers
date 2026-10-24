@@ -1,6 +1,6 @@
-# Castle Rangers V11
+# Castle Rangers V12
 
-V11 adds the current round to the HUD, five coin-purchased damage upgrades per arrow, and an explicit Screen Shake toggle. It retains V10 cumulative active playtime tracking.
+V12 adds versioned asset URLs and a live version check. New builds load automatically when the player returns to a safe menu, without clearing browser cache.
 
 A retro side-scrolling castle-defense shooter that runs entirely in the browser — no build step, no server, no dependencies. Defend your keep through 300 rounds against raiders, brutes, knights, orcs, trolls, and warlords while earning gold to unlock 18 arrow types.
 
