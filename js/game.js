@@ -376,7 +376,7 @@ function buildArmory() {
     if (ar.spread) stats += ' · <b>' + (ar.spreadCount || 3) + ' arrows</b> per shot';
     if (ar.pierce) stats += ' · pierces <b>' + ar.pierce + '</b> enemies';
     if (ar.explode) stats += ' · blast radius <b>' + ar.explode.r + '</b>';
-    if (ar.homing) stats += ' · <b>homing</b> in flight';
+    if (ar.lightning) stats += ' · calls lightning on impact, hitting up to <b>' + ar.lightning.targets + ' monsters</b>';
     if (ar.sunder) stats += ' · shatters armor, <b>+' + Math.round((ar.sunder.mult - 1) * 100) + '%</b> damage taken';
     if (ar.nova) stats += ' · <b>chills all</b> within <b>' + ar.nova.r + '</b>';
     if (ar.leech) stats += ' · heals castle <b>' + Math.round(ar.leech * 100) + '%</b> of damage';
@@ -637,7 +637,7 @@ function spawnVolley(ar, vx, vy, power) {
       explode: ar.explode || null, pierceLeft: ar.pierce || 0, lastHitUid: -1,
       slow: ar.slow || null, chain: ar.chain || null, cluster: ar.cluster || null,
       holy: !!ar.holy, auto: !!ar.auto,
-      homing: !!ar.homing, leech: ar.leech || 0,
+      homing: !!ar.homing, lightning: ar.lightning || null, leech: ar.leech || 0,
       sunder: ar.sunder || null, nova: ar.nova || null,
       power: power, dead: false
     });
@@ -736,8 +736,18 @@ function arcaneColor(type) {
   return ({
     chain: '#78e8ff', holy: '#ffe47a', glacial: '#9fe9ff',
     leech: '#ff62c7', sunder: '#ffad62',
-    homing: '#70f5d2', cluster: '#d29aff', gatling: '#fff078'
+    lightning: '#82e8ff', homing: '#70f5d2', cluster: '#d29aff', gatling: '#fff078'
   })[type] || '';
+}
+
+function spawnLightningStrike(x, y) {
+  var points = [{ x: x + (Math.random() - 0.5) * 34, y: 0 }];
+  var segments = 9;
+  for (var i = 1; i < segments; i++) {
+    points.push({ x: x + (Math.random() - 0.5) * 70, y: y * i / segments });
+  }
+  points.push({ x: x, y: y });
+  particles.push({ kind: 'lightning', points: points, life: 0.22, maxLife: 0.22 });
 }
 
 function spawnArcaneBurst(x, y, type) {
@@ -820,7 +830,7 @@ function killEnemy(e, head, arrow) {
   }
   if (e.def.boss) {
     shake = SETTINGS.shake ? 16 : 0;
-    toast('The Warlord has fallen!');
+    toast('The ' + e.def.name + ' has fallen!');
   }
 }
 
@@ -902,13 +912,14 @@ function spawnEnemy(type) {
     t: 0,
     attackTimer: 1.1, didHit: false, attackT: 0,
     shotTimer: 1.2 + Math.random() * 1.5, shotAnim: 0,
+    healTimer: def.healer ? 0.9 : 0,
     burn: 0, burnDps: 0, burnTick: 0,
     slow: 0, slowFactor: 1, sunder: 0, sunderMult: 1,
     deathT: 0, deathRot: 0, alpha: 1,
     stopX: def.ranged ? 969 + Math.random() * 500 : 0,
     uid: ++uidSeq, burnKind: 'fire'
   });
-  if (def.boss) { Sound.boss(); toast('The Warlord approaches!'); }
+  if (def.boss) { Sound.boss(); toast('The ' + def.name + ' approaches!'); }
   else Sound.spawn();
 }
 
@@ -960,7 +971,13 @@ function update(dt) {
   var cw = currentWaveNum();
   if (cw !== lastWaveShown && qi < spawnQ.length) {
     lastWaveShown = cw;
-    toast('Wave ' + cw + ' of ' + waves.length);
+    var waveInfo = waves[cw - 1];
+    if (waveInfo && waveInfo.elite) {
+      var eliteSpawn = spawnQ[waveInfo.startIdx];
+      toast('Elite wave — ' + (ENEMIES[eliteSpawn.type] || {}).name + ' incoming!');
+    } else {
+      toast('Wave ' + cw + ' of ' + waves.length);
+    }
   }
 
   updateArrows(dt);
@@ -1150,6 +1167,32 @@ function updateArrows(dt) {
       var boom = a.explode;
       damageEnemy(e, dmg, { head: head, arrow: a });
       spawnArcaneBurst(a.x, a.y, a.type);
+
+      // Lightning Shot calls repeated bolts down onto nearby living monsters.
+      if (a.lightning && !boom) {
+        var zap = a.lightning;
+        var struck = Object.create(null);
+        struck[e.uid] = true;
+        spawnLightningStrike(e.x + e.w / 2, GROUND - e.h * 0.55);
+        for (var z = 1; z < zap.targets; z++) {
+          var target = null, targetDist = zap.range;
+          for (var zi = 0; zi < enemies.length; zi++) {
+            var candidate = enemies[zi];
+            if (candidate.state === 'dying' || struck[candidate.uid]) continue;
+            var dist = Math.hypot(candidate.x + candidate.w / 2 - a.x, GROUND - candidate.h * 0.5 - a.y);
+            if (dist < targetDist) { targetDist = dist; target = candidate; }
+          }
+          if (!target) break;
+          struck[target.uid] = true;
+          var tx = target.x + target.w / 2, ty = GROUND - target.h * 0.55;
+          spawnLightningStrike(tx, ty);
+          spawnArcaneBurst(tx, ty, 'lightning');
+          var zapDamage = dmg * Math.pow(zap.falloff, z);
+          if (target.def.armor && !a.holy) zapDamage *= target.def.armor;
+          damageEnemy(target, zapDamage, {});
+          addText(tx, ty - 14, 'ZAP!', '#a8f4ff', 14, 0.7);
+        }
+      }
 
       // glacial nova chills everything around the impact
       if (a.nova) {
@@ -1347,6 +1390,30 @@ function updateEnemies(dt) {
           vx: (Math.random() - 0.5) * 20, vy: -12 - Math.random() * 18,
           r: 3 + Math.random() * 4, life: 0.5 + Math.random() * 0.4, tint: 'frost'
         });
+      }
+    }
+
+    // Necromancers mend the nearest wounded ally on a short cooldown.
+    if (e.def.healer) {
+      e.healTimer -= dt;
+      if (e.healTimer <= 0) {
+        var patient = null, patientDist = e.def.healRange;
+        for (var hi = 0; hi < enemies.length; hi++) {
+          var ally = enemies[hi];
+          if (ally === e || ally.state === 'dying' || ally.hp >= ally.maxHp) continue;
+          var hd = Math.abs(ally.x + ally.w / 2 - (e.x + e.w / 2));
+          if (hd < patientDist) { patientDist = hd; patient = ally; }
+        }
+        if (patient) {
+          var restored = Math.min(e.def.healAmount, patient.maxHp - patient.hp);
+          patient.hp += restored;
+          e.healTimer = e.def.healEvery;
+          var hx = patient.x + patient.w / 2, hy = GROUND - patient.h * 0.55;
+          particles.push({ kind: 'arcaneRing', x: hx, y: hy, r: 8, vr: 130, life: 0.45, maxLife: 0.45, tint: '#9c75ff' });
+          addText(hx, hy - 18, '+' + Math.round(restored) + ' HP', '#c6a6ff', 13, 0.8);
+        } else {
+          e.healTimer = 0.7;
+        }
       }
     }
 
@@ -1555,6 +1622,20 @@ function render() {
       ctx.lineWidth = 2.5;
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.stroke();
       ctx.shadowBlur = 0;
+    } else if (p.kind === 'lightning') {
+      ctx.save();
+      ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1);
+      ctx.shadowColor = '#68dcff'; ctx.shadowBlur = 18;
+      ctx.strokeStyle = '#68dcff'; ctx.lineWidth = 5; ctx.lineJoin = 'round';
+      ctx.beginPath();
+      for (var lp = 0; lp < p.points.length; lp++) {
+        if (lp === 0) ctx.moveTo(p.points[lp].x, p.points[lp].y);
+        else ctx.lineTo(p.points[lp].x, p.points[lp].y);
+      }
+      ctx.stroke();
+      ctx.shadowBlur = 0; ctx.strokeStyle = '#efffff'; ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
     } else if (p.kind === 'arcane') {
       ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1);
       ctx.save();
