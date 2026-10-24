@@ -148,7 +148,7 @@ function buildHighScores(scores, online, reason) {
   var note = document.createElement('div');
   note.className = 'hsNote';
   if (online) {
-    note.textContent = 'Global board — live run stats and total playtime sync about every 15 seconds during active play.';
+    note.textContent = 'Global board — cumulative kills and total playtime sync about every 5 seconds during active play.';
   } else if (Leaderboard.configured()) {
     note.textContent = 'Could not reach the global board — showing this device’s local scores.';
   } else {
@@ -188,7 +188,7 @@ function buildHighScores(scores, online, reason) {
     row.querySelector('.hsName').textContent = s.name || 'Guest';
     var meta = row.querySelector('.hsMeta');
     meta.textContent = (s.active ? 'In progress' : (s.won ? '★'.repeat(Math.max(1, s.stars || 1)) + ' won' : 'fell')) +
-      ' · ' + (s.kills || 0) + ' kills';
+      ' · ' + (s.kills || 0) + ' total kills';
     table.appendChild(row);
   });
   board.appendChild(table);
@@ -297,7 +297,7 @@ function submitScore(won, stars) {
     gold: (p.gold || 0),
     level: Math.max(levelIdx + 1, Math.max(1, (Number(p.unlocked) || 1) - 1)),
     stars: stars || 0,
-    kills: kills || 0,
+    kills: Leaderboard.getTotalKills(Player.current || 'Guest'),
     shots: arrowsShot,
     timePlayed: Leaderboard.getPlayedTime(Player.current || 'Guest'),
     arrow: (p.equipped || 'std'),
@@ -810,6 +810,7 @@ function killEnemy(e, head, arrow) {
   e.alpha = 1;
   e.burn = 0;
   kills++;
+  Leaderboard.recordKill(Player.current || 'Guest');
   score += e.def.score + (head ? 40 : 0);
   runGold += e.def.gold;
   if (arrow) {
@@ -943,18 +944,6 @@ function step(dt) {
 
 function update(dt) {
   elapsed += dt * 1000;
-  Leaderboard.trackTime(Player.current || 'Guest', dt, {
-    score: score,
-    gold: (PROGRESS.gold || 0) + runGold,
-    level: Math.max(levelIdx + 1, Math.max(1, (Number(PROGRESS.unlocked) || 1) - 1)),
-    stars: 0,
-    kills: kills || 0,
-    shots: arrowsShot,
-    arrow: (PROGRESS.equipped || 'std'),
-    diff: (SETTINGS && SETTINGS.difficulty) || 'normal',
-    won: false
-  });
-
   // storm lightning
   if (level.theme === 'storm') {
     lightFlash = Math.max(0, lightFlash - dt * 3.2);
@@ -1718,8 +1707,23 @@ var acc = 0;
 function loop(now) {
   requestAnimationFrame(loop);
   var target = SETTINGS.fps;
-  var dtRaw = now - lastT;
+  var actualDelta = Math.max(0, now - lastT);
+  var dtRaw = actualDelta;
   lastT = now;
+  if (state === 'playing') {
+    var playerName = Player.current || 'Guest';
+    Leaderboard.trackTime(playerName, Math.min(actualDelta, 30000) / 1000, {
+      score: score,
+      gold: (PROGRESS.gold || 0) + runGold,
+      level: Math.max(levelIdx + 1, Math.max(1, (Number(PROGRESS.unlocked) || 1) - 1)),
+      stars: 0,
+      kills: Leaderboard.getTotalKills(playerName),
+      shots: arrowsShot,
+      arrow: (PROGRESS.equipped || 'std'),
+      diff: (SETTINGS && SETTINGS.difficulty) || 'normal',
+      won: false
+    });
+  }
   if (dtRaw > 250) dtRaw = 250;
 
   if (target <= 0) {
