@@ -61,6 +61,19 @@ var SETTINGS = Object.assign({}, DEFAULT_SETTINGS, Store.get('cr_settings', {}))
 
 function saveSettings() { Store.set('cr_settings', SETTINGS); }
 
+function migrateRemovedArrow(progress) {
+  if (!progress || typeof progress !== 'object') return;
+  var hasShrapnel = Array.isArray(progress.owned) && progress.owned.indexOf('shrapnel') >= 0;
+  var level = Math.max(0, Math.min(5, Math.floor(Number(progress.upgrades && progress.upgrades.shrapnel) || 0)));
+  if (hasShrapnel) {
+    var base = Math.max(60, Math.round(3200 * 0.08));
+    progress.gold = (Number(progress.gold) || 0) + 3200 + base * level * (level + 1) / 2;
+    progress.owned = progress.owned.filter(function (id) { return id !== 'shrapnel'; });
+  }
+  if (progress.equipped === 'shrapnel') progress.equipped = 'std';
+  if (progress.upgrades) delete progress.upgrades.shrapnel;
+}
+
 /* ---------------- Progress ---------------- */
 var DEFAULT_PROGRESS = {
   unlocked: 1,              // highest playable level (1-based)
@@ -77,6 +90,7 @@ if (!Array.isArray(PROGRESS.owned) || PROGRESS.owned.indexOf('std') < 0) PROGRES
 if (!PROGRESS.upgrades || typeof PROGRESS.upgrades !== 'object') PROGRESS.upgrades = {};
 if (!PROGRESS.equipped || PROGRESS.owned.indexOf(PROGRESS.equipped) < 0) PROGRESS.equipped = 'std';
 if (typeof PROGRESS.unlocked !== 'number' || PROGRESS.unlocked < 1) PROGRESS.unlocked = 1;
+migrateRemovedArrow(PROGRESS);
 
 function saveProgress() {
   if (Player.current) Player.save();
@@ -198,20 +212,15 @@ var ARROWS = {
     desc: 'Burdened tip hunts movement. Curves mid-air to chase its prey.'
   },
   sunder: {
-    id: 'sunder', name: 'Sunder Maul', icon: '⚒', dmg: 46, cost: 1900, unlock: 22, speed: 1, cadence: 0.6,
+    id: 'sunder', name: 'Sunder Maul', icon: '⚒', dmg: 46, cost: 1900, unlock: 28, speed: 1, cadence: 0.6,
     sunder: { dur: 4, mult: 1.7 },
     explode: { r: 190, mult: 2.1 },
     desc: 'Hammer-forged head cracks armor and erupts on impact, blasting nearby enemies.'
   },
   glacial: {
-    id: 'glacial', name: 'Glacial Nova', icon: '❆', dmg: 120, cost: 2600, unlock: 28, speed: 1, cadence: 0.7,
+    id: 'glacial', name: 'Glacial Nova', icon: '❆', dmg: 120, cost: 2600, unlock: 22, speed: 1, cadence: 0.7,
     nova: { r: 260, factor: 0.2, dur: 4 },
     desc: 'Powerful crystalline impact and wide cold shockwave that heavily chills nearby enemies.'
-  },
-  shrapnel: {
-    id: 'shrapnel', name: 'Shrapnel Case', icon: '✸', dmg: 46, cost: 3200, unlock: 34, speed: 0.95, cadence: 0.9,
-    shatter: { count: 8, dmg: 0.45, spread: 1.7 },
-    desc: 'A rune-cased charge bursts into eight glowing, armor-piercing shards.'
   },
   leech: {
     id: 'leech', name: 'Leech Bolt', icon: '❥', dmg: 38, cost: 4200, unlock: 44, speed: 1.05, cadence: 0.55,
@@ -219,7 +228,7 @@ var ARROWS = {
     desc: 'A vampiric rune drains its target and sends half the damage back to your castle.'
   }
 };
-var ARROW_ORDER = ['std', 'broad', 'fire', 'triple', 'poison', 'frost', 'pierce', 'fan', 'explosive', 'cluster', 'homing', 'chain', 'sunder', 'holy', 'glacial', 'shrapnel', 'leech', 'gatling'];
+var ARROW_ORDER = ['std', 'broad', 'fire', 'triple', 'poison', 'frost', 'pierce', 'fan', 'explosive', 'cluster', 'homing', 'chain', 'sunder', 'holy', 'glacial', 'leech', 'gatling'];
 
 /* ---------------- Enemies ---------------- */
 var ENEMIES = {

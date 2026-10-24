@@ -378,7 +378,6 @@ function buildArmory() {
     if (ar.homing) stats += ' · <b>homing</b> in flight';
     if (ar.sunder) stats += ' · shatters armor, <b>+' + Math.round((ar.sunder.mult - 1) * 100) + '%</b> damage taken';
     if (ar.nova) stats += ' · <b>chills all</b> within <b>' + ar.nova.r + '</b>';
-    if (ar.shatter) stats += ' · bursts into <b>' + ar.shatter.count + '</b> shards on impact';
     if (ar.leech) stats += ' · heals castle <b>' + Math.round(ar.leech * 100) + '%</b> of damage';
     if (ar.speed < 1) stats += ' · slightly slower';
     if (ar.speed > 1) stats += ' · faster';
@@ -632,7 +631,7 @@ function spawnVolley(ar, vx, vy, power) {
       slow: ar.slow || null, chain: ar.chain || null, cluster: ar.cluster || null,
       holy: !!ar.holy, auto: !!ar.auto,
       homing: !!ar.homing, leech: ar.leech || 0,
-      sunder: ar.sunder || null, nova: ar.nova || null, shatter: ar.shatter || null,
+      sunder: ar.sunder || null, nova: ar.nova || null,
       power: power, dead: false
     });
     arrowsShot++;
@@ -729,7 +728,7 @@ function spawnSparks(x, y) {
 function arcaneColor(type) {
   return ({
     chain: '#78e8ff', holy: '#ffe47a', glacial: '#9fe9ff',
-    leech: '#ff62c7', sunder: '#ffad62', shrapnel: '#ff7955',
+    leech: '#ff62c7', sunder: '#ffad62',
     homing: '#70f5d2', cluster: '#d29aff', gatling: '#fff078'
   })[type] || '';
 }
@@ -738,7 +737,7 @@ function spawnArcaneBurst(x, y, type) {
   var color = arcaneColor(type);
   if (!color) return;
   particles.push({ kind: 'arcaneRing', x: x, y: y, r: 7, vr: type === 'glacial' ? 260 : 190, life: 0.34, maxLife: 0.34, tint: color });
-  var count = type === 'glacial' || type === 'shrapnel' ? 18 : 12;
+  var count = type === 'glacial' ? 18 : 12;
   for (var i = 0; i < count; i++) {
     var ang = Math.random() * Math.PI * 2;
     var speed = 65 + Math.random() * (type === 'holy' ? 230 : 190);
@@ -1010,27 +1009,6 @@ function update(dt) {
   }
 }
 
-/* shrapnel cases burst into a spray of partial darts on impact */
-function spawnShards(a) {
-  var sh = a.shatter;
-  if (!sh) return;
-  var base = a.rot;
-  for (var i = 0; i < sh.count; i++) {
-    var off = ((i / (sh.count - 1 || 1)) - 0.5) * sh.spread;
-    var ang = base + off;
-    var spd = Math.hypot(a.vx, a.vy) * 0.55 + 170;
-    arrows.push({
-      x: a.x, y: a.y, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
-      rot: ang, type: a.type, dmg: a.dmg * sh.dmg,
-      burn: null, poison: false, explode: null, pierceLeft: 1, lastHitUid: -1,
-      slow: null, chain: null, cluster: null, holy: !!a.holy,
-      homing: false, leech: 0, sunder: null, nova: null, shatter: null,
-      power: a.power, dead: false, shard: true
-    });
-  }
-  addText(a.x, a.y - 14, 'SHATTER!', '#ff9a5a', 15, 0.8);
-}
-
 function updateArrows(dt) {
   for (var i = arrows.length - 1; i >= 0; i--) {
     var a = arrows[i];
@@ -1237,7 +1215,7 @@ function updateArrows(dt) {
       consumed = true;
       break;
     }
-    if (consumed) { if (a.shatter) spawnShards(a); arrows.splice(i, 1); continue; }
+    if (consumed) { arrows.splice(i, 1); continue; }
 
     // enemy keep (second objective) — arrows lodge in the stonework
     if (keep && !keep.destroyed &&
@@ -1257,7 +1235,6 @@ function updateArrows(dt) {
       } else {
         explodeAt(a.x, a.y, a);
       }
-      if (a.shatter) spawnShards(a);
       arrows.splice(i, 1);
       continue;
     }
@@ -1275,7 +1252,6 @@ function updateArrows(dt) {
         if (stuck.length > 40) stuck.shift();
         Sound.ground();
       }
-      if (a.shatter) spawnShards(a);
       arrows.splice(i, 1);
       continue;
     }

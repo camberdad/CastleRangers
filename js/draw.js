@@ -1030,7 +1030,6 @@ function arrowFletchColor(type) {
   if (type === 'homing') return '#6ee0ff';
   if (type === 'sunder') return '#ffb066';
   if (type === 'glacial') return '#8fd6ff';
-  if (type === 'shrapnel') return '#ff8a4a';
   if (type === 'leech') return '#ff5a7a';
   return '#e2e2e2';
 }
@@ -1041,7 +1040,7 @@ function drawArrowEnt(ctx, a) {
   ctx.rotate(a.rot);
   var magic = ({
     chain: '#78e8ff', holy: '#ffe47a', glacial: '#9fe9ff',
-    leech: '#ff62c7', sunder: '#ffad62', shrapnel: '#ff7955',
+    leech: '#ff62c7', sunder: '#ffad62',
     homing: '#70f5d2', cluster: '#d29aff', gatling: '#fff078'
   })[a.type];
   if (magic) {
@@ -1064,7 +1063,7 @@ function drawArrowEnt(ctx, a) {
       ctx.beginPath(); ctx.moveTo(-16, 4); ctx.lineTo(-13, 8); ctx.lineTo(-16, 12); ctx.lineTo(-19, 8); ctx.closePath(); ctx.fill();
     } else if (a.type === 'leech') {
       ctx.beginPath(); ctx.ellipse(-5, 0, 13, 5, Math.sin(ambT * 5) * 0.25, 0, 6.2832); ctx.stroke();
-    } else if (a.type === 'sunder' || a.type === 'shrapnel') {
+    } else if (a.type === 'sunder') {
       ctx.beginPath(); ctx.moveTo(-16, -7); ctx.lineTo(-12, -2); ctx.lineTo(-16, 3); ctx.lineTo(-20, -2); ctx.closePath(); ctx.fill();
       ctx.beginPath(); ctx.moveTo(-5, 5); ctx.lineTo(-2, 9); ctx.lineTo(-5, 13); ctx.lineTo(-8, 9); ctx.closePath(); ctx.fill();
     }
