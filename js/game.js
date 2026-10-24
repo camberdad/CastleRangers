@@ -53,6 +53,7 @@ var elapsed = 0, spawnQ = [], waves = [], qi = 0;
 var aimActive = false, aimX = 0, aimY = 0, aimPower = 0, aimDX = 1, aimDY = -0.12;
 var shotCooldown = 0, hoverActive = false, lastSolve = null, uidSeq = 0, fireHeld = false;
 var recoil = 0, shake = 0, lightFlash = 0, smokeT = 0;
+var stormFlashTimer = 0;
 var ambT = 0, introT = 0, lastWaveShown = 0;
 var fpsCount = 0, fpsTime = 0;
 var MAXPULL = 188;
@@ -226,6 +227,7 @@ function startLevel(idx0) {
   levelIdx = clamp(idx0, 0, totalLevels() - 1);
   level = Object.assign({}, LEVELS[levelIdx]);
   level.theme = chooseMapTheme();
+  stormFlashTimer = level.theme === 'storm' ? 18 + Math.random() * 18 : 0;
   var built = buildSpawnQueue(level);
   spawnQ = built.queue; waves = built.waves; qi = 0;
   enemies = []; arrows = []; bolts = []; particles = []; decals = []; texts = []; stuck = [];
@@ -952,8 +954,12 @@ function update(dt) {
   elapsed += dt * 1000;
   // storm lightning
   if (level.theme === 'storm') {
-    lightFlash = Math.max(0, lightFlash - dt * 3.2);
-    if (Math.random() < dt * 0.14) { lightFlash = 1; }
+    lightFlash = Math.max(0, lightFlash - dt * 4.5);
+    stormFlashTimer -= dt;
+    if (stormFlashTimer <= 0) {
+      lightFlash = 1;
+      stormFlashTimer = 18 + Math.random() * 18;
+    }
   }
 
   // spawns
