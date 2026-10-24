@@ -353,6 +353,7 @@ function equipArrow(id) {
 var MAX_ARROW_UPGRADES = 5;
 var ARROW_UPGRADE_DAMAGE_PER_LEVEL = 0.15;
 var ARMORY_PRICE_MULTIPLIER = 1.2;
+var ARROW_PURCHASE_PRICE_MULTIPLIER = 1.45;
 function getArrowUpgradeLevel(id) {
   return clamp(Math.floor(Number(PROGRESS.upgrades && PROGRESS.upgrades[id]) || 0), 0, MAX_ARROW_UPGRADES);
 }
@@ -365,7 +366,7 @@ function getArrowUpgradeCost(id, level) {
   return Math.round(baseCost * ARMORY_PRICE_MULTIPLIER) * (level + 1);
 }
 function getArrowPurchaseCost(id) {
-  return Math.round(ARROWS[id].cost * ARMORY_PRICE_MULTIPLIER);
+  return Math.round(ARROWS[id].cost * ARROW_PURCHASE_PRICE_MULTIPLIER);
 }
 
 function buildArmory() {
