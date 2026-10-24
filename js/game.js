@@ -369,14 +369,12 @@ function buildArmory() {
     var ar = ARROWS[id];
     var owned = PROGRESS.owned.indexOf(id) >= 0;
     var eq = PROGRESS.equipped === id;
-    var lvlLocked = PROGRESS.unlocked < ar.unlock;
     var card = document.createElement('div');
     card.className = 'arrowCard' + (eq ? ' equipped' : '');
 
     var tag = '';
     if (eq) tag = '<span class="aTag">EQUIPPED</span>';
     else if (owned) tag = '<span class="aTag">OWNED</span>';
-    else if (lvlLocked) tag = '<span class="aTag">LV ' + ar.unlock + '</span>';
     else tag = '<span class="aTag">' + ar.cost + 'g</span>';
 
     var powerLevel = getArrowUpgradeLevel(id);
@@ -405,9 +403,6 @@ function buildArmory() {
     else if (owned) {
       btn.textContent = 'Equip';
       btn.addEventListener('click', function () { equipArrow(id); buildArmory(); });
-    } else if (lvlLocked) {
-      btn.textContent = 'Unlocks at Level ' + ar.unlock;
-      btn.disabled = true;
     } else {
       btn.textContent = 'Buy — ' + ar.cost + 'g';
       btn.disabled = PROGRESS.gold < ar.cost;
