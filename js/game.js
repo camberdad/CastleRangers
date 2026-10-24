@@ -56,6 +56,15 @@ var recoil = 0, shake = 0, lightFlash = 0, smokeT = 0;
 var ambT = 0, introT = 0, lastWaveShown = 0;
 var fpsCount = 0, fpsTime = 0;
 var MAXPULL = 188;
+var MAP_THEMES = ['day', 'dawn', 'sunset', 'sunsetGold', 'sunsetRose', 'sunsetEmber', 'violetDusk', 'night', 'moonlit', 'aurora', 'storm'];
+var lastMapTheme = '';
+
+function chooseMapTheme() {
+  var options = MAP_THEMES.filter(function (theme) { return theme !== lastMapTheme; });
+  var choice = options[Math.floor(Math.random() * options.length)] || MAP_THEMES[0];
+  lastMapTheme = choice;
+  return choice;
+}
 
 function diff() { return DIFFS[SETTINGS.difficulty] || DIFFS.normal; }
 
@@ -214,7 +223,8 @@ function toast(msg) {
 /* ================= LEVEL FLOW ================= */
 function startLevel(idx0) {
   levelIdx = clamp(idx0, 0, totalLevels() - 1);
-  level = LEVELS[levelIdx];
+  level = Object.assign({}, LEVELS[levelIdx]);
+  level.theme = chooseMapTheme();
   var built = buildSpawnQueue(level);
   spawnQ = built.queue; waves = built.waves; qi = 0;
   enemies = []; arrows = []; bolts = []; particles = []; decals = []; texts = []; stuck = [];
