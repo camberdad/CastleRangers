@@ -4,15 +4,14 @@
 
 Castle Rangers is a browser-based castle-defense game. Aim and fire magical arrows, earn coins, upgrade your armory, and defend your keep through 300 rounds. Player profiles keep progress between updates, and the global leaderboard tracks scores, levels, arrows fired, cumulative kills, and active playtime.
 
-### Latest update — V21
+### Latest update — V22
 
-- Adds a pure elite wave on Round 6, starting with one Cave Ogre, then adds one more monster every five rounds through Round 26.
-- Continues elite waves on Rounds 31, 36, 41, and every five rounds after that. Each wave has one to five larger monsters and no regular enemies mixed in; later rounds grow harder as enemy health and speed increase.
-- Rotates elite types through Cave Ogre, Ravager, Stormcaller, Frost Giant, and Necromancer, and brings more enemy types into regular campaign waves sooner.
-- Reorganizes this README with the documented update history.
+- Randomly selects from 11 map palettes at the start of each round or replay, and avoids repeating the previous sky.
+- Adds multiple sunsets plus dawn, violet dusk, aurora, moonlit, storm, and daylight skies. Each palette also changes the sun or moon, clouds, mountains, hills, and ground.
 
 ## Previous updates
 
+- **V21 — Elite wave progression:** Starts with one elite on Round 6 and increases the number at five-round intervals, reaching five by Round 26. Elite-only waves continue through the later campaign, with broader enemy variety appearing in regular waves sooner.
 - **V20 — Cumulative leaderboard stats:** Counts every enemy kill toward a per-player total, saves kills locally as they happen, and syncs kills and active playtime to the global board about every five seconds. Active playtime is saved locally each second.
 - **V19 — Version badge placement:** Moves the small version label to the top-right corner.
 - **V18 — Version badge:** Adds a small build number on screen.
@@ -56,4 +55,3 @@ The project is published from the `main` branch of `camberdad/CastleRangers`. Gi
 - `js/leaderboard.js` — local and global leaderboard sync
 - `js/game.js` — game loop, combat, and interface
 - `js/version-check.js` / `version.json` — version and update check
-
