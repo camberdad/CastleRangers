@@ -63,6 +63,7 @@ var Leaderboard = (function () {
       stars: Math.max(0, Math.min(3, Math.floor(Number(entry.stars) || 0))),
       kills: Math.max(0, Math.floor(Number(entry.kills) || 0)),
       shots: entry.shots == null ? null : Math.max(0, Math.floor(Number(entry.shots) || 0)),
+      timePlayed: entry.timePlayed == null ? null : Math.max(0, Math.floor(Number(entry.timePlayed) || 0)),
       arrow: String(entry.arrow || 'std').slice(0, 12),
       diff: String(entry.diff || 'normal').slice(0, 10),
       won: !!entry.won,

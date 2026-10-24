@@ -1,4 +1,6 @@
-# Castle Rangers
+# Castle Rangers V9
+
+V9 adds per-run time played to the global high-score leaderboard.
 
 A retro side-scrolling castle-defense shooter that runs entirely in the browser — no build step, no server, no dependencies. Defend your keep through 300 rounds against raiders, brutes, knights, orcs, trolls, and warlords while earning gold to unlock 18 arrow types.
 

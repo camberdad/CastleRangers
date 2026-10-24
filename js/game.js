@@ -170,7 +170,8 @@ function buildHighScores(scores, online, reason) {
   head.className = 'hsRow hsHead';
   head.innerHTML = '<span class="hsRank">#</span><span class="hsName">Archer</span>' +
     '<span class="hsScore">Score</span><span class="hsGold">Gold</span>' +
-    '<span class="hsLvl">Level</span><span class="hsShots">Arrows Fired:</span><span class="hsMeta">Result</span>';
+    '<span class="hsLvl">Level</span><span class="hsShots">Arrows Fired:</span>' +
+    '<span class="hsTime">Time Played</span><span class="hsMeta">Result</span>';
   table.appendChild(head);
 
   scores.slice(0, 100).forEach(function (s, i) {
@@ -182,6 +183,7 @@ function buildHighScores(scores, online, reason) {
       '<span class="hsGold">' + (s.gold || 0) + 'g</span>' +
       '<span class="hsLvl">Lv ' + (s.level || 1) + '</span>' +
       '<span class="hsShots">' + (s.shots == null ? '—' : s.shots) + '</span>' +
+      '<span class="hsTime">' + formatPlayedTime(s.timePlayed) + '</span>' +
       '<span class="hsMeta"></span>';
     row.querySelector('.hsName').textContent = s.name || 'Guest';
     var meta = row.querySelector('.hsMeta');
@@ -190,6 +192,15 @@ function buildHighScores(scores, online, reason) {
     table.appendChild(row);
   });
   board.appendChild(table);
+}
+
+function formatPlayedTime(seconds) {
+  if (seconds == null || !isFinite(Number(seconds))) return '—';
+  seconds = Math.max(0, Math.floor(Number(seconds)));
+  var hours = Math.floor(seconds / 3600);
+  var minutes = Math.floor((seconds % 3600) / 60);
+  var secs = seconds % 60;
+  return hours ? hours + ':' + String(minutes).padStart(2, '0') + ':' + String(secs).padStart(2, '0') : minutes + ':' + String(secs).padStart(2, '0');
 }
 
 /* ================= TOAST ================= */
@@ -285,6 +296,7 @@ function submitScore(won, stars) {
     stars: stars || 0,
     kills: kills || 0,
     shots: arrowsShot,
+    timePlayed: Math.floor(elapsed / 1000),
     arrow: (p.equipped || 'std'),
     diff: (SETTINGS && SETTINGS.difficulty) || 'normal',
     won: !!won
