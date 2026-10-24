@@ -1,6 +1,6 @@
-# Castle Rangers V14
+# Castle Rangers V15
 
-V14 sets Sunder Maul to unlock at Round 28, Glacial Nova at Round 22, and removes Shrapnel Case. Existing Shrapnel purchases are refunded when a save is migrated.
+V15 syncs live run stats and cumulative playtime about every 15 seconds, while preserving each player’s best score and one-row leaderboard entry.
 
 A retro side-scrolling castle-defense shooter that runs entirely in the browser — no build step, no server, no dependencies. Defend your keep through 300 rounds against raiders, brutes, knights, orcs, trolls, and warlords while earning gold to unlock 18 arrow types.
 
