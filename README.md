@@ -1,6 +1,59 @@
-# Castle Rangers V20
+# Castle Rangers
 
-V20 keeps a cumulative kill total per player, saves every kill locally, and syncs kill and time totals to the global leaderboard about every five seconds during active play. Playtime uses elapsed active-session time and is saved locally each second.
+## Brief description of Castle Rangers
 
-The top-right version badge identifies this build as V20.
+Castle Rangers is a browser-based castle-defense game. Aim and fire magical arrows, earn coins, upgrade your armory, and defend your keep through 300 rounds. Player profiles keep progress between updates, and the global leaderboard tracks scores, levels, arrows fired, cumulative kills, and active playtime.
+
+### Latest update — V21
+
+- Adds a pure elite wave on Round 6, starting with one Cave Ogre, then adds one more monster every five rounds through Round 26.
+- Continues elite waves on Rounds 31, 36, 41, and every five rounds after that. Each wave has one to five larger monsters and no regular enemies mixed in; later rounds grow harder as enemy health and speed increase.
+- Rotates elite types through Cave Ogre, Ravager, Stormcaller, Frost Giant, and Necromancer, and brings more enemy types into regular campaign waves sooner.
+- Reorganizes this README with the documented update history.
+
+## Previous updates
+
+- **V20 — Cumulative leaderboard stats:** Counts every enemy kill toward a per-player total, saves kills locally as they happen, and syncs kills and active playtime to the global board about every five seconds. Active playtime is saved locally each second.
+- **V19 — Version badge placement:** Moves the small version label to the top-right corner.
+- **V18 — Version badge:** Adds a small build number on screen.
+- **V17 — Elite enemies and Lightning Shot:** Adds Cave Ogre, Stormcaller, Frost Giant, Ravager, and Necromancer. Replaces Hunter Arrow with Lightning Shot, which calls lightning onto up to five nearby enemies; existing ownership and upgrades carry over.
+- **V16 — Armory and Gatling:** Sorts arrows by unlock round. Gatling Launcher unlocks at Round 75, deals less damage, and fires only while the cursor button is held.
+- **V15 — Live leaderboard stats:** Uploads active-run stats and total playtime during gameplay while keeping one row and the best score per player.
+- **V14 — Arrow unlocks:** Sets Glacial Nova to unlock at Round 22 and Sunder Maul at Round 28. Removes Shrapnel Case and refunds existing purchases.
+- **V13 — Save backups:** Adds rolling backups for profiles, levels, coins, stars, arrow ownership, and upgrades.
+- **V12 — Cache-safe updates:** Adds version checks and asset cache busting so new site builds can load without manually clearing browser cache.
+- **V11 — Persistent account progress:** Keeps player level and stats across game updates.
+- **V10 — Campaign and gameplay upgrades:** Extends the campaign to 300 rounds, improves animation and magical arrow effects, shows the current round beside score, adds purchasable weapon power levels, and adds a screen-shake toggle.
+- **V9 — Playtime leaderboard stat:** Adds total time played to leaderboard entries and keeps it updating during active play.
+- **V8 — Global leaderboard:** Fixes live score display and level reporting, keeps one leaderboard entry per player, and shows Arrows Fired.
+- **V7 — Arrow effects:** Makes Glacial Nova stronger and gives Sunder Maul a damaging impact explosion.
+
+## Play locally
+
+Open `index.html` in any modern browser. The game is pure HTML, CSS, and JavaScript; it has no build step or package dependencies.
+
+## Play online (GitHub Pages)
+
+The project is published from the `main` branch of `camberdad/CastleRangers`. GitHub Pages serves `index.html` from the repository root.
+
+## Controls
+
+| Input | Action |
+| --- | --- |
+| Move mouse | Aim the bow |
+| Click | Fire the equipped arrow |
+| Hold cursor button | Sustained Gatling Launcher fire |
+| `1`–`9`, `0`, `-`, `=`, `[`, `]` | Switch arrows in Armory order |
+| `P` / `Esc` | Pause or resume |
+
+## Project structure
+
+- `index.html` — game entry point and markup
+- `style.css` — game and interface styling
+- `js/data.js` — arrow definitions, enemies, and 300-round campaign
+- `js/audio.js` — sound effects
+- `js/draw.js` — rendering
+- `js/leaderboard.js` — local and global leaderboard sync
+- `js/game.js` — game loop, combat, and interface
+- `js/version-check.js` / `version.json` — version and update check
 
