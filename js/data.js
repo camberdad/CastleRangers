@@ -560,10 +560,12 @@ var LEVELS = [
 /* Pure elite waves: one to five large monsters, with no regular troops mixed in. */
 (function addEarlyEliteWaves() {
   var eliteTypes = ['ogre', 'stormcaller', 'frostgiant', 'ravager', 'necromancer'];
-  for (var round = 5; round <= 30; round += 5) {
-    var type = eliteTypes[(round / 5 - 1) % eliteTypes.length];
-    var count = ((round / 5 - 1) % 5) + 1;
-    LEVELS[round - 1].waves.push({ units: [[type, count]], gap: 2100, pause: 3000, elite: true });
+  for (var round = 6; round <= 26; round += 5) {
+    var count = 1 + Math.floor((round - 6) / 5);
+    var start = Math.floor((round - 6) / 5) % eliteTypes.length;
+    var units = [];
+    for (var i = 0; i < count; i++) units.push([eliteTypes[(start + i) % eliteTypes.length], 1]);
+    LEVELS[round - 1].waves.push({ units: units, gap: 2100, pause: 3000, elite: true });
   }
 })();
 
@@ -583,11 +585,11 @@ var LEVELS = [
   var rng = mulberry32(408172903);
   var themes = ['day', 'sunset', 'night', 'storm'];
   var pools = [
-    ['raider', 'runner'],
-    ['raider', 'shield', 'runner'],
-    ['shield', 'brute', 'crossbow', 'ravager'],
-    ['crossbow', 'captain', 'shield', 'stormcaller'],
-    ['captain', 'brute', 'crossbow', 'runner', 'ogre', 'necromancer'],
+    ['raider', 'runner', 'brute'],
+    ['raider', 'shield', 'runner', 'crossbow', 'ravager', 'ogre'],
+    ['shield', 'brute', 'crossbow', 'stormcaller', 'ravager', 'ogre'],
+    ['crossbow', 'captain', 'shield', 'stormcaller', 'frostgiant', 'necromancer'],
+    ['captain', 'brute', 'crossbow', 'runner', 'ogre', 'necromancer', 'ravager', 'stormcaller'],
     ['captain', 'brute', 'shield', 'crossbow', 'runner', 'frostgiant', 'ogre', 'stormcaller', 'ravager', 'necromancer']
   ];
   var eliteTypes = ['ogre', 'stormcaller', 'frostgiant', 'ravager', 'necromancer'];
@@ -600,7 +602,7 @@ var LEVELS = [
     var hpMul = 2.8 + Math.min(6.5, i * 0.024);
     var spdMul = 1.7 + Math.min(0.9, i * 0.003);
     var gold = 1200 + i * 18 + (boss ? 500 : 0);
-    var poolIdx = Math.min(pools.length - 1, Math.floor(i / 45));
+    var poolIdx = Math.min(pools.length - 1, Math.floor(i / 35));
     var waveCount = 3 + Math.floor(rng() * Math.min(3, 1 + Math.floor(i / 90))); // 3-5 waves
     var waves = [];
     for (var w = 0; w < waveCount; w++) {
@@ -621,13 +623,15 @@ var LEVELS = [
       var pause = 1900 + Math.floor(rng() * 500);
       waves.push({ units: units, gap: gap, pause: pause });
     }
-    if (n % 5 === 0) {
-      var elite = eliteTypes[Math.floor(rng() * eliteTypes.length)];
-      var eliteCount = 1 + Math.floor(rng() * 5);
-      waves.push({ units: [[elite, eliteCount]], gap: 2100, pause: 3000, elite: true });
+    if ((n - 6) % 5 === 0) {
+      var eliteCount = 1 + Math.min(4, Math.floor((n - 6) / 5));
+      var eliteStart = Math.floor((n - 6) / 5) % eliteTypes.length;
+      var eliteUnits = [];
+      for (var em = 0; em < eliteCount; em++) eliteUnits.push([eliteTypes[(eliteStart + em) % eliteTypes.length], 1]);
+      waves.push({ units: eliteUnits, gap: 2100, pause: 3000, elite: true });
     }
     if (boss) {
-      waves.push({ units: [['warlord', 1], ['captain', 1 + Math.min(4, Math.floor(i / 60))]], gap: 1900, pause: 2600 });
+      waves.push({ units: [['warlord', 1], ['captain', Math.min(4, 1 + Math.floor(i / 60))]], gap: 1900, pause: 2600, elite: true });
     }
     LEVELS.push({
       name: adj[i % adj.length] + ' ' + noun[Math.floor(i / adj.length) % noun.length] + ' ' + n,
