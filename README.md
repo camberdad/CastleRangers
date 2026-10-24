@@ -1,8 +1,8 @@
-# Castle Rangers V15
+# Castle Rangers V16
 
-V15 syncs live run stats and cumulative playtime about every 15 seconds, while preserving each player’s best score and one-row leaderboard entry.
+V16 orders Armory arrows by unlock round. Gatling Launcher unlocks at Round 75, has lower burst damage, and only fires while the cursor button is held.
 
-A retro side-scrolling castle-defense shooter that runs entirely in the browser — no build step, no server, no dependencies. Defend your keep through 300 rounds against raiders, brutes, knights, orcs, trolls, and warlords while earning gold to unlock 18 arrow types.
+A retro side-scrolling castle-defense shooter that runs entirely in the browser — no build step, no server, no dependencies. Defend your keep through 300 rounds against raiders, brutes, knights, orcs, trolls, and warlords while earning gold to unlock 17 arrow types.
 
 ## Play locally
 
