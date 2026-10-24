@@ -103,45 +103,25 @@ var Leaderboard = (function () {
     });
     return scores;
   }
-  function persistRemoteTime(name, rec) {
-    if (!configured() || typeof fetch !== 'function' || rec.syncing || rec.pending < 15 || Date.now() < rec.retryAt) return;
+  function persistRemoteStats(name, rec) {
+    if (!configured() || typeof fetch !== 'function' || rec.syncing || rec.pending < 15 || Date.now() < rec.retryAt || !rec.snapshot) return;
     rec.syncing = true;
-    var pendingAtStart = 0;
-    queueRemoteWrite(function () {
-      pendingAtStart = rec.pending;
-      return fetch(syncUrl(), { headers: headers(), cache: 'no-store' })
-      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
-      .then(function (d) {
-        var raw = d && d.record && Array.isArray(d.record.scores) ? d.record.scores : (d && Array.isArray(d.scores) ? d.scores : []);
-        var scores = raw.map(sanitize), key = playerKey(name), row = null;
-        for (var i = 0; i < scores.length; i++) if (playerKey(scores[i].name) === key) { row = scores[i]; break; }
-        if (!row) { rec.retryAt = Date.now() + 15000; return false; }
-        var baseTotal = Math.max(Math.max(0, rec.total - rec.pending), Number(row.timePlayed) || 0);
-        var uploadedTotal = Math.floor(baseTotal + pendingAtStart);
-        row.timePlayed = uploadedTotal;
-        scores = oneRunPerPlayer(scores);
-        if (scores.length > LEADERBOARD_CONFIG.MAX_ENTRIES) scores = scores.slice(0, LEADERBOARD_CONFIG.MAX_ENTRIES);
-        return fetch(syncUrl(), { method: 'PUT', headers: headers(), body: JSON.stringify({ scores: scores }) })
-          .then(function (r2) { if (!r2.ok) throw new Error('http ' + r2.status); return uploadedTotal; });
-      });
-    })
-      .then(function (uploadedTotal) {
-        if (uploadedTotal === false || uploadedTotal == null) return;
-        var remaining = Math.max(0, rec.pending - pendingAtStart);
-        rec.total = uploadedTotal + remaining;
-        rec.pending = remaining;
-        rec.retryAt = 0;
-        updateLocalTime(name, rec.total);
-        saveTimeState();
-      })
-      .catch(function () { rec.retryAt = Date.now() + 15000; })
-      .then(function () { rec.syncing = false; });
+    var entry = Object.assign({}, rec.snapshot, {
+      name: name,
+      timePlayed: Math.floor(rec.total),
+      active: true
+    });
+    submit(entry, function (ok) {
+      rec.retryAt = ok ? 0 : Date.now() + 15000;
+      rec.syncing = false;
+    });
   }
-  function trackTime(name, dt) {
+  function trackTime(name, dt, snapshot) {
     dt = Number(dt);
     if (!isFinite(dt) || dt <= 0) return;
     dt = Math.min(dt, 1);
     var rec = playerTime(name);
+    if (snapshot) rec.snapshot = snapshot;
     rec.total += dt;
     rec.pending += dt;
     rec.saveRemainder = (rec.saveRemainder || 0) + dt;
@@ -150,7 +130,7 @@ var Leaderboard = (function () {
       updateLocalTime(name, rec.total);
       saveTimeState();
     }
-    persistRemoteTime(name, rec);
+    persistRemoteStats(name, rec);
   }
   function getPlayedTime(name) { return Math.floor(playerTime(name).total); }
   function acceptPlayedTime(name, total) {
@@ -163,6 +143,7 @@ var Leaderboard = (function () {
 
   function sanitize(entry) {
     var name = String(entry.name || 'Guest').trim().slice(0, 16) || 'Guest';
+    var stamp = Number(entry.t) || Date.now();
     var s = Math.max(0, Math.min(LEADERBOARD_CONFIG.MAX_SCORE, Math.floor(Number(entry.score) || 0)));
     var g = Math.max(0, Math.min(LEADERBOARD_CONFIG.MAX_GOLD, Math.floor(Number(entry.gold) || 0)));
     var lvl = Math.max(1, Math.floor(Number(entry.level) || 1));
@@ -175,7 +156,8 @@ var Leaderboard = (function () {
       arrow: String(entry.arrow || 'std').slice(0, 12),
       diff: String(entry.diff || 'normal').slice(0, 10),
       won: !!entry.won,
-      t: Date.now()
+      active: !!entry.active && (Date.now() - stamp < 45000),
+      t: stamp
     };
     return out;
   }
@@ -199,8 +181,17 @@ var Leaderboard = (function () {
       var entry = list[i];
       var player = String(entry.name || 'Guest').trim().toLowerCase() || 'guest';
       if (seen[player] !== undefined) {
-        unique[seen[player]].level = Math.max(Number(unique[seen[player]].level) || 1, Number(entry.level) || 1);
-        unique[seen[player]].timePlayed = Math.max(Number(unique[seen[player]].timePlayed) || 0, Number(entry.timePlayed) || 0);
+        var kept = unique[seen[player]];
+        kept.level = Math.max(Number(kept.level) || 1, Number(entry.level) || 1);
+        kept.timePlayed = Math.max(Number(kept.timePlayed) || 0, Number(entry.timePlayed) || 0);
+        kept.gold = Math.max(Number(kept.gold) || 0, Number(entry.gold) || 0);
+        kept.kills = Math.max(Number(kept.kills) || 0, Number(entry.kills) || 0);
+        kept.stars = Math.max(Number(kept.stars) || 0, Number(entry.stars) || 0);
+        if (entry.shots != null) kept.shots = Math.max(Number(kept.shots) || 0, Number(entry.shots) || 0);
+        if ((Number(entry.t) || 0) >= (Number(kept.t) || 0)) {
+          kept.active = !!entry.active;
+          kept.t = Number(entry.t) || Date.now();
+        }
         continue;
       }
       seen[player] = unique.length;
@@ -222,7 +213,7 @@ var Leaderboard = (function () {
 
   /* ---- fetch the shared board (falls back to local on any failure) ---- */
   function fetchBoard(cb) {
-    var local = oneRunPerPlayer(localGet().scores);
+    var local = oneRunPerPlayer(localGet().scores.map(sanitize));
     if (!configured() || typeof fetch !== 'function') {
       cb({ online: false, scores: overlayLocalTimes(local), reason: configured() ? 'nocors' : 'unconfigured' });
       return;
@@ -231,7 +222,7 @@ var Leaderboard = (function () {
       .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
       .then(function (d) {
         var scores = d && d.record && Array.isArray(d.record.scores) ? d.record.scores : (d && Array.isArray(d.scores) ? d.scores : []);
-        cb({ online: true, scores: overlayLocalTimes(oneRunPerPlayer(scores)), reason: '' });
+        cb({ online: true, scores: overlayLocalTimes(oneRunPerPlayer(scores.map(sanitize))), reason: '' });
       })
       .catch(function (e) {
         cb({ online: false, scores: overlayLocalTimes(local), reason: 'offline' });
