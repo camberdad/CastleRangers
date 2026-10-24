@@ -13,7 +13,7 @@ var el = {
   hpFill: $('hpFill'), hpText: $('hpText'),
   keepFill: $('keepFill'), keepText: $('keepText'),
   lvlName: $('lvlName'), waveInfo: $('waveInfo'),
-  scoreVal: $('scoreVal'), goldVal: $('goldVal'),
+  scoreVal: $('scoreVal'), roundVal: $('roundVal'), goldVal: $('goldVal'),
   fpsWrap: $('fpsWrap'), fpsVal: $('fpsVal'),
   ammoBar: $('ammoBar'),
   powerWrap: $('powerWrap'), powerFill: $('powerFill'),
@@ -25,11 +25,11 @@ var el = {
   hsBoard: $('hsBoard'), hsStatus: $('hsStatus'),
   winStars: $('winStars'), winLevel: $('winLevel'), winScore: $('winScore'),
   winGold: $('winGold'), winCastle: $('winCastle'), nextBtn: $('nextBtn'),
-  loseLevel: $('loseLevel'), loseScore: $('loseScore'), loseKills: $('loseKills'),
+  loseLevel: $('loseLevel'), loseScore: $('loseScore'), loseKills: $('loseKills'), loseGold: $('loseGold'),
   setFps: $('setFps'), setFpsCounter: $('setFpsCounter'), setBlood: $('setBlood'),
   setDiff: $('setDiff'), setTraj: $('setTraj'), setDmgNums: $('setDmgNums'),
   setShootStyle: $('setShootStyle'),
-  setShake: $('setShake'), setVol: $('setVol'), volVal: $('volVal'), setMute: $('setMute')
+  setShake: $('setShake'), setShakeState: $('setShakeState'), setVol: $('setVol'), volVal: $('volVal'), setMute: $('setMute')
 };
 
 var SCREENS = ['screen-title', 'screen-levels', 'screen-armory', 'screen-settings',
@@ -275,6 +275,9 @@ function winLevel() {
 function loseLevel() {
   if (state !== 'playing') return;
   state = 'lose';
+  PROGRESS.gold += runGold;
+  saveProgress();
+  el.loseGold.textContent = '+' + runGold + 'g';
   Sound.lose();
   hide(el.hud);
   el.loseLevel.textContent = (levelIdx + 1) + ' — ' + level.name;
@@ -334,6 +337,20 @@ function equipArrow(id) {
   Sound.click();
 }
 
+var MAX_ARROW_UPGRADES = 5;
+var ARROW_UPGRADE_DAMAGE_PER_LEVEL = 0.15;
+function getArrowUpgradeLevel(id) {
+  return clamp(Math.floor(Number(PROGRESS.upgrades && PROGRESS.upgrades[id]) || 0), 0, MAX_ARROW_UPGRADES);
+}
+function getArrowPowerMultiplier(id) {
+  return 1 + getArrowUpgradeLevel(id) * ARROW_UPGRADE_DAMAGE_PER_LEVEL;
+}
+function getArrowUpgradeCost(id, level) {
+  var ar = ARROWS[id];
+  var baseCost = Math.max(60, Math.round((ar.cost || 100) * 0.08));
+  return baseCost * (level + 1);
+}
+
 function buildArmory() {
   el.armoryGold.textContent = PROGRESS.gold + ' gold';
   el.arrowGrid.innerHTML = '';
@@ -351,8 +368,10 @@ function buildArmory() {
     else if (lvlLocked) tag = '<span class="aTag">LV ' + ar.unlock + '</span>';
     else tag = '<span class="aTag">' + ar.cost + 'g</span>';
 
-    var stats = 'Damage <b>' + ar.dmg + '</b>';
-    if (ar.burn) stats += ' · ' + (ar.poison ? 'Poison' : 'Burn') + ' <b>' + ar.burn.dps + '/s</b> for <b>' + ar.burn.dur + 's</b>';
+    var powerLevel = getArrowUpgradeLevel(id);
+    var powerMult = getArrowPowerMultiplier(id);
+    var stats = 'Damage <b>' + Math.round(ar.dmg * powerMult) + '</b> · Power <b>' + powerLevel + '/' + MAX_ARROW_UPGRADES + '</b>';
+    if (ar.burn) stats += ' · ' + (ar.poison ? 'Poison' : 'Burn') + ' <b>' + Math.round(ar.burn.dps * powerMult) + '/s</b> for <b>' + ar.burn.dur + 's</b>';
     if (ar.spread) stats += ' · <b>' + (ar.spreadCount || 3) + ' arrows</b> per shot';
     if (ar.pierce) stats += ' · pierces <b>' + ar.pierce + '</b> enemies';
     if (ar.explode) stats += ' · blast radius <b>' + ar.explode.r + '</b>';
@@ -391,6 +410,29 @@ function buildArmory() {
       });
     }
     card.appendChild(btn);
+
+    var powerBtn = document.createElement('button');
+    powerBtn.className = 'btn small powerUpgrade';
+    if (!owned) {
+      powerBtn.textContent = 'Unlock arrow to upgrade power';
+      powerBtn.disabled = true;
+    } else if (powerLevel >= MAX_ARROW_UPGRADES) {
+      powerBtn.textContent = 'Power Maxed (5/5)';
+      powerBtn.disabled = true;
+    } else {
+      var powerCost = getArrowUpgradeCost(id, powerLevel);
+      powerBtn.textContent = 'Power +' + Math.round(ARROW_UPGRADE_DAMAGE_PER_LEVEL * 100) + '% — ' + powerCost + 'g';
+      powerBtn.disabled = PROGRESS.gold < powerCost;
+      if (!powerBtn.disabled) powerBtn.addEventListener('click', function () {
+        PROGRESS.gold -= powerCost;
+        PROGRESS.upgrades = Object.assign({}, PROGRESS.upgrades || {});
+        PROGRESS.upgrades[id] = powerLevel + 1;
+        saveProgress();
+        Sound.coin();
+        buildArmory();
+      });
+    }
+    card.appendChild(powerBtn);
     el.arrowGrid.appendChild(card);
   });
 }
@@ -584,8 +626,8 @@ function spawnVolley(ar, vx, vy, power) {
     var mvy = (dx * s + dy * c) * len;
     arrows.push({
       x: BOW.x + dx * 28, y: BOW.y + dy * 28, vx: mvx, vy: mvy,
-      rot: Math.atan2(mvy, mvx), type: ar.id, dmg: ar.dmg,
-      burn: ar.burn || null, poison: !!ar.poison,
+      rot: Math.atan2(mvy, mvx), type: ar.id, dmg: ar.dmg * getArrowPowerMultiplier(ar.id),
+      burn: ar.burn ? { dps: ar.burn.dps * getArrowPowerMultiplier(ar.id), dur: ar.burn.dur } : null, poison: !!ar.poison,
       explode: ar.explode || null, pierceLeft: ar.pierce || 0, lastHitUid: -1,
       slow: ar.slow || null, chain: ar.chain || null, cluster: ar.cluster || null,
       holy: !!ar.holy, auto: !!ar.auto,
@@ -1421,6 +1463,7 @@ function updateHUD() {
     el.keepText.textContent = keep.destroyed ? 'CASTLE DESTROYED' : Math.ceil(keep.hp) + ' / ' + Math.round(keep.maxHp);
   }
   el.scoreVal.textContent = score;
+  el.roundVal.textContent = levelIdx + 1;
   el.goldVal.textContent = runGold;
   var alive = enemies.length;
   var pending = spawnQ.length - qi;
@@ -1673,6 +1716,7 @@ function bindSettings() {
   el.setTraj.checked = !!SETTINGS.trajectory;
   el.setDmgNums.checked = !!SETTINGS.dmgNums;
   el.setShake.checked = !!SETTINGS.shake;
+  el.setShakeState.textContent = SETTINGS.shake ? 'On' : 'Off';
   el.setVol.value = String(SETTINGS.volume);
   el.volVal.textContent = SETTINGS.volume;
   el.setMute.checked = !!SETTINGS.mute;
@@ -1688,7 +1732,7 @@ function bindSettings() {
   });
   el.setTraj.addEventListener('change', function () { SETTINGS.trajectory = el.setTraj.checked; saveSettings(); });
   el.setDmgNums.addEventListener('change', function () { SETTINGS.dmgNums = el.setDmgNums.checked; saveSettings(); });
-  el.setShake.addEventListener('change', function () { SETTINGS.shake = el.setShake.checked; saveSettings(); });
+  el.setShake.addEventListener('change', function () { SETTINGS.shake = el.setShake.checked; el.setShakeState.textContent = SETTINGS.shake ? 'On' : 'Off'; saveSettings(); });
   el.setVol.addEventListener('input', function () { SETTINGS.volume = parseInt(el.setVol.value, 10); el.volVal.textContent = SETTINGS.volume; saveSettings(); Sound.refresh(); });
   el.setMute.addEventListener('change', function () { SETTINGS.mute = el.setMute.checked; saveSettings(); Sound.refresh(); });
 

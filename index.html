@@ -28,6 +28,7 @@
       </div>
       <div class="stats">
         <div class="stat">Score <b id="scoreVal">0</b></div>
+        <div class="stat">Round <b id="roundVal">1</b></div>
         <div class="stat">Gold <b id="goldVal">0</b></div>
         <div class="stat" id="fpsWrap">FPS <b id="fpsVal">0</b></div>
       </div>
@@ -145,8 +146,9 @@
         <input type="checkbox" id="setDmgNums">
       </div>
       <div class="row">
-        <label for="setShake">Screen shake</label>
-        <input type="checkbox" id="setShake">
+        <label for="setShake">Screen Shake Toggle</label>
+        <input type="checkbox" id="setShake" class="toggleSwitch" role="switch" aria-label="Screen shake">
+        <span id="setShakeState" class="toggleState">On</span>
       </div>
       <div class="row">
         <label for="setVol">Sound volume</label>
@@ -232,6 +234,7 @@
         <div class="rline">You reached level <b id="loseLevel"></b></div>
         <div class="rline">Score <b id="loseScore"></b></div>
         <div class="rline muted">Kills <b id="loseKills"></b></div>
+        <div class="rline muted">Coins earned <b id="loseGold"></b></div>
       </div>
       <div class="menu">
         <button class="btn gold" data-action="retry">Try Again</button>

@@ -38,11 +38,13 @@ var DEFAULT_PROGRESS = {
   stars: {},                // { levelIndex(1-based): 0-3 }
   best: {},                 // { levelIndex: best score }
   owned: ['std'],
-  equipped: 'std'
+  equipped: 'std',
+  upgrades: {}
 };
 
 var PROGRESS = Object.assign({}, DEFAULT_PROGRESS, Store.get('cr_progress', {}));
 if (!Array.isArray(PROGRESS.owned) || PROGRESS.owned.indexOf('std') < 0) PROGRESS.owned = ['std'];
+if (!PROGRESS.upgrades || typeof PROGRESS.upgrades !== 'object') PROGRESS.upgrades = {};
 if (!PROGRESS.equipped || PROGRESS.owned.indexOf(PROGRESS.equipped) < 0) PROGRESS.equipped = 'std';
 if (typeof PROGRESS.unlocked !== 'number' || PROGRESS.unlocked < 1) PROGRESS.unlocked = 1;
 
@@ -67,6 +69,7 @@ var Player = {
     this.current = name;
     PROGRESS = Object.assign({}, DEFAULT_PROGRESS, JSON.parse(JSON.stringify(this.db.list[name])));
     if (!Array.isArray(PROGRESS.owned) || PROGRESS.owned.indexOf('std') < 0) PROGRESS.owned = ['std'];
+    if (!PROGRESS.upgrades || typeof PROGRESS.upgrades !== 'object') PROGRESS.upgrades = {};
     if (!PROGRESS.equipped || PROGRESS.owned.indexOf(PROGRESS.equipped) < 0) PROGRESS.equipped = 'std';
     if (typeof PROGRESS.unlocked !== 'number' || PROGRESS.unlocked < 1) PROGRESS.unlocked = 1;
     this.db.last = name;

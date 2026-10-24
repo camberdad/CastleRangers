@@ -96,7 +96,7 @@ canvas#game {
 #lvlName { display: block; font-size: 19px; color: var(--gold); letter-spacing: 1px; font-weight: bold; text-shadow: 0 2px 3px #000; }
 #waveInfo { display: block; font-size: 13px; color: var(--parch); opacity: .85; text-shadow: 0 1px 2px #000; }
 
-.stats { display: flex; gap: 16px; min-width: 300px; justify-content: flex-end; }
+.stats { display: flex; gap: 12px; min-width: 300px; justify-content: flex-end; }
 .stat { font-size: 14px; text-shadow: 0 1px 2px #000; }
 .stat b { color: var(--gold); font-size: 16px; margin-left: 4px; }
 
@@ -346,6 +346,36 @@ canvas#game {
 .arrowCard .aStats { font-size: 12px; opacity: .9; }
 .arrowCard .aStats b { color: #ffb3a5; }
 .arrowCard .btn { align-self: flex-start; margin-top: 2px; }
+.arrowCard .powerUpgrade { font-size: 11.5px; }
+.arrowCard .powerUpgrade:disabled { opacity: .55; cursor: not-allowed; }
+
+.row input.toggleSwitch {
+  appearance: none;
+  position: relative;
+  width: 48px !important;
+  height: 27px !important;
+  flex: 0 0 48px;
+  border: 1px solid var(--gold-dim);
+  border-radius: 20px;
+  background: #34261a;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+.row input.toggleSwitch::after {
+  content: '';
+  position: absolute;
+  width: 19px;
+  height: 19px;
+  left: 3px;
+  top: 3px;
+  border-radius: 50%;
+  background: var(--parch);
+  transition: transform .15s ease;
+}
+.row input.toggleSwitch:checked { background: #687e36; }
+.row input.toggleSwitch:checked::after { transform: translateX(21px); background: #fff1b5; }
+.row input.toggleSwitch:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.toggleState { width: 30px; color: var(--gold); font-size: 12px; text-align: right; }
 
 /* Settings rows */
 .row {

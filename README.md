@@ -1,6 +1,6 @@
-# Castle Rangers V10
+# Castle Rangers V11
 
-V10 tracks each named player’s cumulative active gameplay time across runs and syncs it to the global leaderboard about every 15 seconds.
+V11 adds the current round to the HUD, five coin-purchased damage upgrades per arrow, and an explicit Screen Shake toggle. It retains V10 cumulative active playtime tracking.
 
 A retro side-scrolling castle-defense shooter that runs entirely in the browser — no build step, no server, no dependencies. Defend your keep through 300 rounds against raiders, brutes, knights, orcs, trolls, and warlords while earning gold to unlock 18 arrow types.
 
