@@ -13,6 +13,36 @@ var Store = {
   }
 };
 
+/* Keep a timestamped local backup beside the active save. Stable keys and a
+   newer backup allow profile/level progress to survive game updates. */
+function validProgressSave(value) {
+  return !!value && typeof value === 'object' && (typeof value.unlocked === 'number' || typeof value.gold === 'number' || Array.isArray(value.owned));
+}
+function validPlayerSave(value) {
+  return !!value && typeof value === 'object' && value.list && typeof value.list === 'object';
+}
+function readPersistentSave(primaryKey, backupKey, isValid, fallback) {
+  var primary = Store.get(primaryKey, null);
+  var backup = Store.get(backupKey, null);
+  if (backup && isValid(backup.data)) {
+    var primaryTime = Number(primary && primary._savedAt) || 0;
+    var backupTime = Number(backup.savedAt || backup.data._savedAt) || 0;
+    if (!isValid(primary) || backupTime > primaryTime) {
+      primary = backup.data;
+      Store.set(primaryKey, primary);
+    }
+  }
+  return isValid(primary) ? primary : fallback;
+}
+function writePersistentSave(primaryKey, backupKey, value) {
+  var snapshot = JSON.parse(JSON.stringify(value));
+  snapshot._savedAt = Date.now();
+  Store.set(backupKey, { savedAt: snapshot._savedAt, data: snapshot });
+  Store.set(primaryKey, snapshot);
+  return snapshot;
+}
+
+
 /* ---------------- Settings ---------------- */
 var DEFAULT_SETTINGS = {
   fps: 60,          // target frames per second (0 = unlimited)
@@ -42,18 +72,21 @@ var DEFAULT_PROGRESS = {
   upgrades: {}
 };
 
-var PROGRESS = Object.assign({}, DEFAULT_PROGRESS, Store.get('cr_progress', {}));
+var PROGRESS = Object.assign({}, DEFAULT_PROGRESS, readPersistentSave('cr_progress', 'cr_progress_backup', validProgressSave, {}));
 if (!Array.isArray(PROGRESS.owned) || PROGRESS.owned.indexOf('std') < 0) PROGRESS.owned = ['std'];
 if (!PROGRESS.upgrades || typeof PROGRESS.upgrades !== 'object') PROGRESS.upgrades = {};
 if (!PROGRESS.equipped || PROGRESS.owned.indexOf(PROGRESS.equipped) < 0) PROGRESS.equipped = 'std';
 if (typeof PROGRESS.unlocked !== 'number' || PROGRESS.unlocked < 1) PROGRESS.unlocked = 1;
 
-function saveProgress() { Store.set('cr_progress', PROGRESS); if (Player.current) Player.save(); }
+function saveProgress() {
+  if (Player.current) Player.save();
+  writePersistentSave('cr_progress', 'cr_progress_backup', PROGRESS);
+}
 
 /* ---------------- Player profiles ---------------- */
 var Player = {
   current: '',
-  db: Store.get('cr_players', { list: {}, last: '' }),
+  db: readPersistentSave('cr_players', 'cr_players_backup', validPlayerSave, { list: {}, last: '' }),
 
   names() { return Object.keys(this.db.list).sort(); },
 
@@ -61,7 +94,7 @@ var Player = {
     if (!this.current) return;
     this.db.list[this.current] = JSON.parse(JSON.stringify(PROGRESS));
     this.db.last = this.current;
-    Store.set('cr_players', this.db);
+    this.db = writePersistentSave('cr_players', 'cr_players_backup', this.db);
   },
 
   load(name) {
@@ -73,8 +106,8 @@ var Player = {
     if (!PROGRESS.equipped || PROGRESS.owned.indexOf(PROGRESS.equipped) < 0) PROGRESS.equipped = 'std';
     if (typeof PROGRESS.unlocked !== 'number' || PROGRESS.unlocked < 1) PROGRESS.unlocked = 1;
     this.db.last = name;
-    Store.set('cr_players', this.db);
-    Store.set('cr_progress', PROGRESS);
+    this.db = writePersistentSave('cr_players', 'cr_players_backup', this.db);
+    writePersistentSave('cr_progress', 'cr_progress_backup', PROGRESS);
     return true;
   },
 
@@ -83,7 +116,7 @@ var Player = {
     if (!name) return null;
     if (!this.db.list[name]) {
       this.db.list[name] = JSON.parse(JSON.stringify(DEFAULT_PROGRESS));
-      Store.set('cr_players', this.db);
+      this.db = writePersistentSave('cr_players', 'cr_players_backup', this.db);
     }
     this.load(name);
     return name;
@@ -574,10 +607,13 @@ function totalLevels() { return LEVELS.length; }
 (function migrateLegacy() {
   if (!Player.db.last && Player.names().length === 0) {
     var legacy = Store.get('cr_progress', null);
-    if (legacy && (legacy.gold > 0 || legacy.unlocked > 1 || Object.keys(legacy.stars || {}).length > 0)) {
+    if (legacy && (legacy.gold > 0 || legacy.unlocked > 1 ||
+      Object.keys(legacy.stars || {}).length > 0 || Object.keys(legacy.best || {}).length > 0 ||
+      (legacy.owned && legacy.owned.length > 1) || (legacy.equipped && legacy.equipped !== 'std') ||
+      Object.keys(legacy.upgrades || {}).length > 0)) {
       Player.db.list['Archer'] = JSON.parse(JSON.stringify(legacy));
       Player.db.last = 'Archer';
-      Store.set('cr_players', Player.db);
+      Player.db = writePersistentSave('cr_players', 'cr_players_backup', Player.db);
     }
   }
   if (Player.db.last && Player.db.list[Player.db.last]) Player.load(Player.db.last);

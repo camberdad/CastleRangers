@@ -1,6 +1,6 @@
-# Castle Rangers V12
+# Castle Rangers V13
 
-V12 adds versioned asset URLs and a live version check. New builds load automatically when the player returns to a safe menu, without clearing browser cache.
+V13 adds automatic version checks and rolling local backups for player profiles, levels, coins, stars, weapon ownership, and upgrades. Account save keys remain stable across game updates.
 
 A retro side-scrolling castle-defense shooter that runs entirely in the browser — no build step, no server, no dependencies. Defend your keep through 300 rounds against raiders, brutes, knights, orcs, trolls, and warlords while earning gold to unlock 18 arrow types.
 
