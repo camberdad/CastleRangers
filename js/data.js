@@ -73,6 +73,18 @@ function migrateRemovedArrow(progress) {
   if (progress.equipped === 'shrapnel') progress.equipped = 'std';
   if (progress.upgrades) delete progress.upgrades.shrapnel;
 }
+function migrateLightningArrow(progress) {
+  if (!progress || typeof progress !== 'object') return;
+  if (Array.isArray(progress.owned) && progress.owned.indexOf('homing') >= 0) {
+    progress.owned = progress.owned.filter(function (id) { return id !== 'homing'; });
+    if (progress.owned.indexOf('lightning') < 0) progress.owned.push('lightning');
+  }
+  if (progress.equipped === 'homing') progress.equipped = 'lightning';
+  if (progress.upgrades && progress.upgrades.homing != null) {
+    progress.upgrades.lightning = Math.max(Number(progress.upgrades.lightning) || 0, Number(progress.upgrades.homing) || 0);
+    delete progress.upgrades.homing;
+  }
+}
 
 /* ---------------- Progress ---------------- */
 var DEFAULT_PROGRESS = {
@@ -91,6 +103,7 @@ if (!PROGRESS.upgrades || typeof PROGRESS.upgrades !== 'object') PROGRESS.upgrad
 if (!PROGRESS.equipped || PROGRESS.owned.indexOf(PROGRESS.equipped) < 0) PROGRESS.equipped = 'std';
 if (typeof PROGRESS.unlocked !== 'number' || PROGRESS.unlocked < 1) PROGRESS.unlocked = 1;
 migrateRemovedArrow(PROGRESS);
+migrateLightningArrow(PROGRESS);
 
 function saveProgress() {
   if (Player.current) Player.save();
@@ -119,6 +132,8 @@ var Player = {
     if (!PROGRESS.upgrades || typeof PROGRESS.upgrades !== 'object') PROGRESS.upgrades = {};
     if (!PROGRESS.equipped || PROGRESS.owned.indexOf(PROGRESS.equipped) < 0) PROGRESS.equipped = 'std';
     if (typeof PROGRESS.unlocked !== 'number' || PROGRESS.unlocked < 1) PROGRESS.unlocked = 1;
+    migrateRemovedArrow(PROGRESS);
+    migrateLightningArrow(PROGRESS);
     this.db.last = name;
     this.db = writePersistentSave('cr_players', 'cr_players_backup', this.db);
     writePersistentSave('cr_progress', 'cr_progress_backup', PROGRESS);
@@ -207,10 +222,10 @@ var ARROWS = {
     spread: true, spreadCount: 5,
     desc: 'Five iron darts loosed as one draw. Sprays the field wide.'
   },
-  homing: {
-    id: 'homing', name: 'Hunter Arrow', icon: '➹', dmg: 40, cost: 1500, unlock: 18, speed: 1, cadence: 0.6,
-    homing: true,
-    desc: 'Burdened tip hunts movement. Curves mid-air to chase its prey.'
+  lightning: {
+    id: 'lightning', name: 'Lightning Shot', icon: 'ϟ', dmg: 34, cost: 1500, unlock: 18, speed: 1, cadence: 0.65,
+    lightning: { targets: 5, range: 420, falloff: 0.72 },
+    desc: 'A charged arrow calls a lightning strike on impact, chaining through up to five nearby monsters.'
   },
   sunder: {
     id: 'sunder', name: 'Sunder Maul', icon: '⚒', dmg: 46, cost: 1900, unlock: 28, speed: 1, cadence: 0.6,
@@ -229,7 +244,7 @@ var ARROWS = {
     desc: 'A vampiric rune drains its target and sends half the damage back to your castle.'
   }
 };
-var ARROW_ORDER = ['std', 'broad', 'fire', 'triple', 'poison', 'frost', 'pierce', 'fan', 'explosive', 'cluster', 'homing', 'chain', 'glacial', 'holy', 'sunder', 'leech', 'gatling'];
+var ARROW_ORDER = ['std', 'broad', 'fire', 'triple', 'poison', 'frost', 'pierce', 'fan', 'explosive', 'cluster', 'lightning', 'chain', 'glacial', 'holy', 'sunder', 'leech', 'gatling'];
 
 /* ---------------- Enemies ---------------- */
 var ENEMIES = {
@@ -261,6 +276,27 @@ var ENEMIES = {
   warlord: {
     hp: 500, speed: 54, dmg: 27, gold: 150, score: 400, w: 76, h: 110,
     color: '#7a2420', trim: '#4a1512', weapon: 'axe', boss: true, name: 'Warlord'
+  },
+  ogre: {
+    hp: 440, speed: 46, dmg: 20, gold: 90, score: 200, w: 72, h: 104,
+    color: '#9a5737', trim: '#61351f', weapon: 'club', boss: true, name: 'Cave Ogre'
+  },
+  stormcaller: {
+    hp: 320, speed: 54, dmg: 16, gold: 85, score: 180, w: 58, h: 88,
+    color: '#435c83', trim: '#26374f', weapon: 'crossbow', ranged: true, shotEvery: 2.6, boss: true, name: 'Stormcaller'
+  },
+  frostgiant: {
+    hp: 620, speed: 38, dmg: 25, gold: 110, score: 250, w: 82, h: 120,
+    color: '#7da9b8', trim: '#436979', weapon: 'club', armor: 0.85, boss: true, name: 'Frost Giant'
+  },
+  ravager: {
+    hp: 360, speed: 78, dmg: 18, gold: 80, score: 170, w: 62, h: 100,
+    color: '#80633b', trim: '#4a3823', weapon: 'axe', boss: true, name: 'Ravager'
+  },
+  necromancer: {
+    hp: 350, speed: 48, dmg: 12, gold: 100, score: 210, w: 58, h: 94,
+    color: '#684778', trim: '#392848', weapon: 'crossbow', ranged: true, shotEvery: 3.0,
+    healer: true, healEvery: 3.4, healRange: 340, healAmount: 40, boss: true, name: 'Necromancer'
   }
 };
 
@@ -521,6 +557,16 @@ var LEVELS = [
   }
 ];
 
+/* Pure elite waves: one to five large monsters, with no regular troops mixed in. */
+(function addEarlyEliteWaves() {
+  var eliteTypes = ['ogre', 'stormcaller', 'frostgiant', 'ravager', 'necromancer'];
+  for (var round = 5; round <= 30; round += 5) {
+    var type = eliteTypes[(round / 5 - 1) % eliteTypes.length];
+    var count = ((round / 5 - 1) % 5) + 1;
+    LEVELS[round - 1].waves.push({ units: [[type, count]], gap: 2100, pause: 3000, elite: true });
+  }
+})();
+
 /* Procedurally extend the campaign to 300 rounds (adds rounds 31-300).
    Seeded RNG so the generated campaign is identical on every load.
    Difficulty grows in controlled steps, with enemy speed and health capped
@@ -539,11 +585,12 @@ var LEVELS = [
   var pools = [
     ['raider', 'runner'],
     ['raider', 'shield', 'runner'],
-    ['shield', 'brute', 'crossbow'],
-    ['crossbow', 'captain', 'shield'],
-    ['captain', 'brute', 'crossbow', 'runner'],
-    ['captain', 'brute', 'shield', 'crossbow', 'runner']
+    ['shield', 'brute', 'crossbow', 'ravager'],
+    ['crossbow', 'captain', 'shield', 'stormcaller'],
+    ['captain', 'brute', 'crossbow', 'runner', 'ogre', 'necromancer'],
+    ['captain', 'brute', 'shield', 'crossbow', 'runner', 'frostgiant', 'ogre', 'stormcaller', 'ravager', 'necromancer']
   ];
+  var eliteTypes = ['ogre', 'stormcaller', 'frostgiant', 'ravager', 'necromancer'];
   var adj = ['Relentless', 'Silent', 'Burning', 'Iron', 'Shadow', 'Crimson', 'Frozen', 'Hollow', 'Raging', 'Astral'];
   var noun = ['Horde', 'March', 'Tide', 'Siege', 'Onslaught', 'Vanguard', 'Legion', 'Assault', 'Reign', 'Eclipse'];
   for (var i = 0; i < 270; i++) {
@@ -574,6 +621,11 @@ var LEVELS = [
       var pause = 1900 + Math.floor(rng() * 500);
       waves.push({ units: units, gap: gap, pause: pause });
     }
+    if (n % 5 === 0) {
+      var elite = eliteTypes[Math.floor(rng() * eliteTypes.length)];
+      var eliteCount = 1 + Math.floor(rng() * 5);
+      waves.push({ units: [[elite, eliteCount]], gap: 2100, pause: 3000, elite: true });
+    }
     if (boss) {
       waves.push({ units: [['warlord', 1], ['captain', 1 + Math.min(4, Math.floor(i / 60))]], gap: 1900, pause: 2600 });
     }
@@ -603,7 +655,7 @@ function buildSpawnQueue(level) {
       }
     }
     var lastT = t - (w.gap || 1000);
-    waves.push({ firstT: firstT, lastT: lastT, startIdx: startIdx, endIdx: queue.length });
+    waves.push({ firstT: firstT, lastT: lastT, startIdx: startIdx, endIdx: queue.length, elite: !!w.elite });
     t += (w.pause || 2200);
   }
   return { queue: queue, waves: waves };
