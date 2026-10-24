@@ -1,5 +1,5 @@
 (function () {
-  var CURRENT_VERSION = '17';
+  var CURRENT_VERSION = '18';
   var latestVersion = '';
   var checkInProgress = false;
   var safeStates = ['title', 'profiles', 'levels', 'armory', 'settings', 'howto', 'highscores'];
