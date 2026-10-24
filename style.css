@@ -260,6 +260,45 @@ canvas#game {
 .panel .menu .btn { width: 250px; }
 .goldText { color: var(--gold); }
 
+/* High scores */
+.hsBoard {
+  background: linear-gradient(to bottom, #2a2016, #1c140d);
+  border: 2px solid var(--gold-dim);
+  border-radius: 8px;
+  padding: 12px 14px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.hsNote { font-size: 12px; opacity: .8; margin-bottom: 10px; font-style: italic; }
+.hsEmpty { text-align: center; opacity: .7; padding: 26px 0; font-style: italic; }
+.hsTable { display: flex; flex-direction: column; gap: 3px; }
+.hsRow {
+  display: grid;
+  grid-template-columns: 40px 1.6fr 0.9fr 0.8fr 0.7fr 0.8fr 1.4fr;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 5px;
+  font-size: 13px;
+  background: rgba(255,255,255,.03);
+}
+.hsRow.hsHead {
+  background: rgba(232,193,90,.12);
+  color: var(--gold);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  position: sticky; top: 0;
+}
+.hsRow.hsMine { background: rgba(232,193,90,.16); border: 1px solid var(--gold-dim); }
+.hsRank { color: var(--gold); font-weight: bold; }
+.hsName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hsScore { color: #ffe08a; font-weight: bold; }
+.hsGold { color: #b8a25e; }
+.hsMeta { font-size: 11.5px; opacity: .8; }
+.hsBoard::-webkit-scrollbar { width: 9px; }
+.hsBoard::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 5px; }
+
 /* Level grid */
 #levelGrid {
   display: grid;
@@ -371,3 +410,4 @@ canvas#game {
 ::-webkit-scrollbar { width: 10px; }
 ::-webkit-scrollbar-track { background: #14100a; }
 ::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 5px; }
+

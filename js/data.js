@@ -137,13 +137,13 @@ var ARROWS = {
   },
   chain: {
     id: 'chain', name: 'Chain Bolt', icon: '⚡', dmg: 40, cost: 1600, unlock: 20, speed: 1.05, cadence: 0.6,
-    chain: { jumps: 3, range: 340, falloff: 0.7 },
-    desc: 'Crackling arc leaps from foe to foe, shocking up to 3 extra targets.'
+    chain: { jumps: 4, range: 380, falloff: 0.7 },
+    desc: 'A vivid lightning arc leaps between up to five foes.'
   },
   holy: {
     id: 'holy', name: 'Holy Bolt', icon: '★', dmg: 55, cost: 2000, unlock: 24, speed: 1.1, cadence: 0.5,
-    holy: true,
-    desc: 'Blessed steel. Ignores armor and deals double damage to bosses.'
+    holy: true, pierce: 1,
+    desc: 'Radiant bolt pierces one foe, ignores armor, and smites bosses.'
   },
   gatling: {
     id: 'gatling', name: 'Gatling Launcher', icon: '╳', dmg: 18, cost: 4800, unlock: 50, speed: 1.2, cadence: 0.12,
@@ -164,22 +164,23 @@ var ARROWS = {
   sunder: {
     id: 'sunder', name: 'Sunder Maul', icon: '⚒', dmg: 46, cost: 1900, unlock: 22, speed: 1, cadence: 0.6,
     sunder: { dur: 4, mult: 1.7 },
-    desc: 'Hammer-forged head cracks armor open. Shattered foes take extra damage.'
+    explode: { r: 190, mult: 2.1 },
+    desc: 'Hammer-forged head cracks armor and erupts on impact, blasting nearby enemies.'
   },
   glacial: {
-    id: 'glacial', name: 'Glacial Nova', icon: '❆', dmg: 32, cost: 2600, unlock: 28, speed: 1, cadence: 0.7,
-    nova: { r: 200, factor: 0.35, dur: 2.6 },
-    desc: 'Crystalline burst on impact. A cold shockwave chills everything nearby.'
+    id: 'glacial', name: 'Glacial Nova', icon: '❆', dmg: 120, cost: 2600, unlock: 28, speed: 1, cadence: 0.7,
+    nova: { r: 260, factor: 0.2, dur: 4 },
+    desc: 'Powerful crystalline impact and wide cold shockwave that heavily chills nearby enemies.'
   },
   shrapnel: {
     id: 'shrapnel', name: 'Shrapnel Case', icon: '✸', dmg: 46, cost: 3200, unlock: 34, speed: 0.95, cadence: 0.9,
-    shatter: { count: 6, dmg: 0.5, spread: 1.5 },
-    desc: 'Cased charge packed with shot. Detonates into a spray of shards.'
+    shatter: { count: 8, dmg: 0.45, spread: 1.7 },
+    desc: 'A rune-cased charge bursts into eight glowing, armor-piercing shards.'
   },
   leech: {
     id: 'leech', name: 'Leech Bolt', icon: '❥', dmg: 38, cost: 4200, unlock: 44, speed: 1.05, cadence: 0.55,
-    leech: 0.4,
-    desc: 'Wicked hooked tip drinks the wound. Siphons life back into your castle.'
+    leech: 0.5,
+    desc: 'A vampiric rune drains its target and sends half the damage back to your castle.'
   }
 };
 var ARROW_ORDER = ['std', 'broad', 'fire', 'triple', 'poison', 'frost', 'pierce', 'fan', 'explosive', 'cluster', 'homing', 'chain', 'sunder', 'holy', 'glacial', 'shrapnel', 'leech', 'gatling'];
@@ -474,10 +475,10 @@ var LEVELS = [
   }
 ];
 
-/* Procedurally extend the campaign to 60 levels (adds levels 31-60).
+/* Procedurally extend the campaign to 300 rounds (adds rounds 31-300).
    Seeded RNG so the generated campaign is identical on every load.
-   Difficulty continues gently from where the hand-authored 30 leave off,
-   but growth per level is much smaller so later rounds stay approachable. */
+   Difficulty grows in controlled steps, with enemy speed and health capped
+   so the final rounds remain playable. */
 (function extendCampaign() {
   function mulberry32(a) {
     return function () {
@@ -487,7 +488,7 @@ var LEVELS = [
       return ((t ^ t >>> 14) >>> 0) / 4294967296;
     };
   }
-  var rng = mulberry32(987654321);
+  var rng = mulberry32(408172903);
   var themes = ['day', 'sunset', 'night', 'storm'];
   var pools = [
     ['raider', 'runner'],
@@ -497,18 +498,17 @@ var LEVELS = [
     ['captain', 'brute', 'crossbow', 'runner'],
     ['captain', 'brute', 'shield', 'crossbow', 'runner']
   ];
-  var adj = ['Relentless', 'Silent', 'Burning', 'Iron', 'Shadow', 'Crimson', 'Frozen', 'Hollow', 'Raging', 'Last'];
-  var noun = ['Horde', 'March', 'Tide', 'Siege', 'Onslaught', 'Vanguard', 'Legion', 'Assault', 'Reign', 'End'];
-  for (var i = 0; i < 30; i++) {
-    var n = 30 + i + 1; // level number 31..60
+  var adj = ['Relentless', 'Silent', 'Burning', 'Iron', 'Shadow', 'Crimson', 'Frozen', 'Hollow', 'Raging', 'Astral'];
+  var noun = ['Horde', 'March', 'Tide', 'Siege', 'Onslaught', 'Vanguard', 'Legion', 'Assault', 'Reign', 'Eclipse'];
+  for (var i = 0; i < 270; i++) {
+    var n = 30 + i + 1; // round number 31..300
     var theme = themes[Math.floor(rng() * themes.length)];
-    var boss = (n % 6 === 0); // boss every 6th new level: 36,42,48,54,60
-    // much gentler scaling
-    var hpMul = 1.25 + i * 0.025;
-    var spdMul = 0.9 + i * 0.012;
-    var gold = 380 + i * 16 + (boss ? 200 : 0);
-    var poolIdx = Math.min(pools.length - 1, Math.floor(i / 6));
-    var waveCount = 2 + Math.floor(rng() * 3); // 2-4 waves
+    var boss = (n % 10 === 0); // a boss round every ten rounds
+    var hpMul = 2.8 + Math.min(6.5, i * 0.024);
+    var spdMul = 1.7 + Math.min(0.9, i * 0.003);
+    var gold = 1200 + i * 18 + (boss ? 500 : 0);
+    var poolIdx = Math.min(pools.length - 1, Math.floor(i / 45));
+    var waveCount = 3 + Math.floor(rng() * Math.min(3, 1 + Math.floor(i / 90))); // 3-5 waves
     var waves = [];
     for (var w = 0; w < waveCount; w++) {
       var pool = pools[Math.min(pools.length - 1, poolIdx + (w % 2))];
@@ -520,19 +520,19 @@ var LEVELS = [
         if (used[ti]) continue;
         used[ti] = true;
         var type = pool[ti];
-        var count = 3 + Math.floor(rng() * (4 + Math.floor(i / 8)));
+        var count = 3 + Math.floor(rng() * (4 + Math.min(5, Math.floor(i / 45))));
         units.push([type, count]);
       }
       if (units.length === 0) units.push(['raider', 4]);
-      var gap = Math.max(520, 1150 - i * 12);
+      var gap = Math.max(520, 1100 - i * 2.1);
       var pause = 1900 + Math.floor(rng() * 500);
       waves.push({ units: units, gap: gap, pause: pause });
     }
     if (boss) {
-      waves.push({ units: [['warlord', 1], ['captain', 1 + Math.floor(i / 12)]], gap: 1900, pause: 2600 });
+      waves.push({ units: [['warlord', 1], ['captain', 1 + Math.min(4, Math.floor(i / 60))]], gap: 1900, pause: 2600 });
     }
     LEVELS.push({
-      name: adj[i % adj.length] + ' ' + noun[Math.floor(i / adj.length) % noun.length],
+      name: adj[i % adj.length] + ' ' + noun[Math.floor(i / adj.length) % noun.length] + ' ' + n,
       theme: theme, hpMul: hpMul, spdMul: spdMul, gold: gold, boss: boss,
       waves: waves
     });
@@ -579,3 +579,4 @@ function totalLevels() { return LEVELS.length; }
   }
   if (Player.db.last && Player.db.list[Player.db.last]) Player.load(Player.db.last);
 })();
+

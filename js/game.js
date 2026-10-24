@@ -22,6 +22,7 @@ var el = {
   levelGrid: $('levelGrid'),
   profileList: $('profileList'), newProfileName: $('newProfileName'), newProfileBtn: $('newProfileBtn'),
   arrowGrid: $('arrowGrid'), armoryGold: $('armoryGold'),
+  hsBoard: $('hsBoard'), hsStatus: $('hsStatus'),
   winStars: $('winStars'), winLevel: $('winLevel'), winScore: $('winScore'),
   winGold: $('winGold'), winCastle: $('winCastle'), nextBtn: $('nextBtn'),
   loseLevel: $('loseLevel'), loseScore: $('loseScore'), loseKills: $('loseKills'),
@@ -32,8 +33,12 @@ var el = {
 };
 
 var SCREENS = ['screen-title', 'screen-levels', 'screen-armory', 'screen-settings',
-  'screen-howto', 'screen-pause', 'screen-win', 'screen-lose', 'screen-profiles'];
-function hideAllScreens() { SCREENS.forEach(function (id) { hide($(id)); }); }
+  'screen-howto', 'screen-pause', 'screen-win', 'screen-lose', 'screen-profiles', 'screen-highscores'];
+var highScorePollTimer = null;
+function hideAllScreens() {
+  if (highScorePollTimer !== null) { clearInterval(highScorePollTimer); highScorePollTimer = null; }
+  SCREENS.forEach(function (id) { hide($(id)); });
+}
 
 /* ================= STATE ================= */
 var state = 'title';           // title|levels|armory|settings|howto|playing|paused|win|lose
@@ -43,7 +48,7 @@ var level = null, levelIdx = 0;
 var enemies = [], arrows = [], bolts = [], particles = [], decals = [], texts = [], stuck = [];
 var castleHP = 100, castleMax = 100, castleFlash = 0;
 var keep = null, keepSmokeT = 0;   // enemy keep (second objective)
-var score = 0, runGold = 0, kills = 0;
+var score = 0, runGold = 0, kills = 0, arrowsShot = 0;
 var elapsed = 0, spawnQ = [], waves = [], qi = 0;
 var aimActive = false, aimX = 0, aimY = 0, aimPower = 0, aimDX = 1, aimDY = -0.12;
 var shotCooldown = 0, hoverActive = false, lastSolve = null, uidSeq = 0;
@@ -119,6 +124,74 @@ function buildProfileList() {
   });
 }
 
+/* ================= HIGH SCORES ================= */
+function showHighScores() {
+  state = 'highscores'; hideAllScreens(); hide(el.hud);
+  el.hsStatus.textContent = '';
+  el.hsBoard.innerHTML = '<div class="hsEmpty">Loading…</div>';
+  show($('screen-highscores'));
+  refreshHighScores();
+  highScorePollTimer = setInterval(function () {
+    if (state === 'highscores' && !document.hidden) refreshHighScores();
+  }, 15000);
+}
+function refreshHighScores() {
+  el.hsStatus.textContent = Leaderboard.configured() ? 'Live' : 'Local';
+  el.hsStatus.style.opacity = Leaderboard.configured() ? '1' : '.6';
+  Leaderboard.fetchBoard(function (res) {
+    buildHighScores(res.scores || [], res.online, res.reason);
+  });
+}
+function buildHighScores(scores, online, reason) {
+  var board = el.hsBoard;
+  board.innerHTML = '';
+  var note = document.createElement('div');
+  note.className = 'hsNote';
+  if (online) {
+    note.textContent = 'Global board — ' + scores.length + ' run' + (scores.length === 1 ? '' : 's') + ' ranked. Refreshes every 15 seconds; each name keeps its best run.';
+  } else if (Leaderboard.configured()) {
+    note.textContent = 'Could not reach the global board — showing this device’s local scores.';
+  } else {
+    note.textContent = 'Offline board — showing this device’s scores. (Add a jsonbin.io Bin ID + key in js/leaderboard.js to share scores globally.)';
+  }
+  board.appendChild(note);
+
+  if (!scores.length) {
+    var empty = document.createElement('div');
+    empty.className = 'hsEmpty';
+    empty.textContent = 'No scores yet — go win a battle!';
+    board.appendChild(empty);
+    return;
+  }
+
+  var table = document.createElement('div');
+  table.className = 'hsTable';
+  var head = document.createElement('div');
+  head.className = 'hsRow hsHead';
+  head.innerHTML = '<span class="hsRank">#</span><span class="hsName">Archer</span>' +
+    '<span class="hsScore">Score</span><span class="hsGold">Gold</span>' +
+    '<span class="hsLvl">Level</span><span class="hsShots">Arrows Fired:</span><span class="hsMeta">Result</span>';
+  table.appendChild(head);
+
+  scores.slice(0, 100).forEach(function (s, i) {
+    var row = document.createElement('div');
+    row.className = 'hsRow' + (Player.current && s.name === Player.current ? ' hsMine' : '');
+    row.innerHTML = '<span class="hsRank">' + (i + 1) + '</span>' +
+      '<span class="hsName"></span>' +
+      '<span class="hsScore">' + (s.score || 0) + '</span>' +
+      '<span class="hsGold">' + (s.gold || 0) + 'g</span>' +
+      '<span class="hsLvl">Lv ' + (s.level || 1) + '</span>' +
+      '<span class="hsShots">' + (s.shots == null ? '—' : s.shots) + '</span>' +
+      '<span class="hsMeta"></span>';
+    row.querySelector('.hsName').textContent = s.name || 'Guest';
+    var meta = row.querySelector('.hsMeta');
+    meta.textContent = (s.won ? '★'.repeat(Math.max(1, s.stars || 1)) + ' won' : 'fell') +
+      ' · ' + (s.kills || 0) + ' kills';
+    table.appendChild(row);
+  });
+  board.appendChild(table);
+}
+
 /* ================= TOAST ================= */
 function toast(msg) {
   el.toast.textContent = msg;
@@ -141,7 +214,7 @@ function startLevel(idx0) {
     destroyed: false, stuck: [], nagT: 0
   };
   keepSmokeT = 0;
-  score = 0; runGold = 0; kills = 0; elapsed = 0;
+  score = 0; runGold = 0; kills = 0; arrowsShot = 0; elapsed = 0;
   aimActive = false; aimPower = 0; aimDX = 1; aimDY = -0.12; recoil = 0;
   shotCooldown = 0; hoverActive = false; lastSolve = null;
   shake = 0; lightFlash = 0; smokeT = 0; lastWaveShown = 1;
@@ -185,6 +258,7 @@ function winLevel() {
   if (levelIdx + 1 < totalLevels()) { show(el.nextBtn); el.nextBtn.textContent = 'Next Level'; }
   else { hide(el.nextBtn); }
   hideAllScreens(); show($('screen-win'));
+  submitScore(true, stars);
 }
 
 function loseLevel() {
@@ -196,6 +270,31 @@ function loseLevel() {
   el.loseScore.textContent = score;
   el.loseKills.textContent = kills;
   hideAllScreens(); show($('screen-lose'));
+  submitScore(false, 0);
+}
+
+/* ---- push this run to the local + shared high-score boards ---- */
+function submitScore(won, stars) {
+  if (typeof Leaderboard === 'undefined') return;
+  var p = PROGRESS || {};
+  var entry = {
+    name: Player.current || 'Guest',
+    score: score,
+    gold: (p.gold || 0),
+    level: Math.max(levelIdx + 1, Math.max(1, (Number(p.unlocked) || 1) - 1)),
+    stars: stars || 0,
+    kills: kills || 0,
+    shots: arrowsShot,
+    arrow: (p.equipped || 'std'),
+    diff: (SETTINGS && SETTINGS.difficulty) || 'normal',
+    won: !!won
+  };
+  try {
+    Leaderboard.submit(entry, function (ok) {
+      if (ok) toast('Score posted to the global board!');
+      else if (Leaderboard.configured()) toast('Score saved (global board offline).');
+    });
+  } catch (e) { /* never let scoring break the game */ }
 }
 
 /* ================= ARMORY / AMMO ================= */
@@ -482,6 +581,7 @@ function spawnVolley(ar, vx, vy, power) {
       sunder: ar.sunder || null, nova: ar.nova || null, shatter: ar.shatter || null,
       power: power, dead: false
     });
+    arrowsShot++;
   }
   if (ar.spread) {
     var n = ar.spreadCount || 3;
@@ -569,6 +669,31 @@ function spawnSparks(x, y) {
     var a = Math.random() * Math.PI * 2;
     var sp = 120 + Math.random() * 160;
     particles.push({ kind: 'spark', x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 60, r: 1.2 + Math.random(), life: 0.18 + Math.random() * 0.2 });
+  }
+}
+
+function arcaneColor(type) {
+  return ({
+    chain: '#78e8ff', holy: '#ffe47a', glacial: '#9fe9ff',
+    leech: '#ff62c7', sunder: '#ffad62', shrapnel: '#ff7955',
+    homing: '#70f5d2', cluster: '#d29aff', gatling: '#fff078'
+  })[type] || '';
+}
+
+function spawnArcaneBurst(x, y, type) {
+  var color = arcaneColor(type);
+  if (!color) return;
+  particles.push({ kind: 'arcaneRing', x: x, y: y, r: 7, vr: type === 'glacial' ? 260 : 190, life: 0.34, maxLife: 0.34, tint: color });
+  var count = type === 'glacial' || type === 'shrapnel' ? 18 : 12;
+  for (var i = 0; i < count; i++) {
+    var ang = Math.random() * Math.PI * 2;
+    var speed = 65 + Math.random() * (type === 'holy' ? 230 : 190);
+    particles.push({
+      kind: 'arcane', x: x, y: y,
+      vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed - 35,
+      r: 2 + Math.random() * 3, rot: ang, spin: (Math.random() - 0.5) * 9,
+      life: 0.28 + Math.random() * 0.38, maxLife: 0.66, tint: color
+    });
   }
 }
 
@@ -974,6 +1099,7 @@ function updateArrows(dt) {
 
       var boom = a.explode;
       damageEnemy(e, dmg, { head: head, arrow: a });
+      spawnArcaneBurst(a.x, a.y, a.type);
 
       // glacial nova chills everything around the impact
       if (a.nova) {
@@ -1033,6 +1159,7 @@ function updateArrows(dt) {
             });
           }
           addText(best.x + best.w / 2, GROUND - best.h - 10, 'ZAP!', '#ffe066', 13, 0.7);
+          spawnArcaneBurst(best.x + best.w / 2, GROUND - best.h * 0.5, 'chain');
           damageEnemy(best, curDmg, {});
           curDmg *= ch.falloff;
           lastUid = best.uid;
@@ -1063,6 +1190,7 @@ function updateArrows(dt) {
         a.y >= KEEP_BOX.top && a.y <= GROUND) {
       var kdmg = a.dmg * (0.5 + 0.5 * a.power);
       damageKeep(kdmg, a.x, a.y);
+      spawnArcaneBurst(a.x, a.y, a.type);
       spawnSparks(a.x, a.y);
       Sound.buildHit();
       if (!a.explode) {
@@ -1081,6 +1209,7 @@ function updateArrows(dt) {
 
     // ground
     if (a.y >= GROUND) {
+      spawnArcaneBurst(a.x, GROUND - 6, a.type);
       if (a.explode && a.x > WALL_W + 6) explodeAt(a.x, GROUND - 6, a);
       else if (a.x > WALL_W + 6) {
         stuck.push({
@@ -1235,9 +1364,18 @@ function updateParticles(dt) {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       p.r += dt * 9;
+    } else if (p.kind === 'arcane') {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vx *= 0.96;
+      p.vy *= 0.96;
+      p.rot += p.spin * dt;
+      p.r *= 0.985;
+    } else if (p.kind === 'arcaneRing') {
+      p.r += p.vr * dt;
     }
   }
-  if (particles.length > 380) particles.splice(0, particles.length - 380);
+  if (particles.length > 620) particles.splice(0, particles.length - 620);
 }
 
 function updateTexts(dt) {
@@ -1360,6 +1498,28 @@ function render() {
       ctx.globalAlpha = clamp(p.life / 2, 0, 0.4);
       ctx.fillStyle = p.tint === 'frost' ? '#9fd8ff' : '#555a60';
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill();
+    } else if (p.kind === 'arcaneRing') {
+      ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1) * 0.85;
+      ctx.strokeStyle = p.tint;
+      ctx.shadowColor = p.tint;
+      ctx.shadowBlur = 16;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.stroke();
+      ctx.shadowBlur = 0;
+    } else if (p.kind === 'arcane') {
+      ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.shadowColor = p.tint;
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = p.tint;
+      ctx.beginPath();
+      ctx.moveTo(0, -p.r * 1.6); ctx.lineTo(p.r * 0.65, 0);
+      ctx.lineTo(0, p.r * 1.6); ctx.lineTo(-p.r * 0.65, 0);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+      ctx.shadowBlur = 0;
     }
     ctx.globalAlpha = 1;
   }
@@ -1467,6 +1627,8 @@ document.addEventListener('click', function (ev) {
   if (act === 'play') startLevel(clamp(PROGRESS.unlocked, 1, totalLevels()) - 1);
   else if (act === 'levels') showLevels();
   else if (act === 'armory') showArmory();
+  else if (act === 'highscores') showHighScores();
+  else if (act === 'hsRefresh') refreshHighScores();
   else if (act === 'profiles') showProfiles();
   else if (act === 'settings') showSettings('title');
   else if (act === 'howto') showHowto();
@@ -1575,4 +1737,5 @@ if (typeof location !== 'undefined' && location.search.indexOf('demo') >= 0) {
     }, 300);
   }, 60);
 }
+
 

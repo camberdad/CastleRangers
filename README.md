@@ -1,6 +1,6 @@
 # Castle Rangers
 
-A retro side-scrolling castle-defense shooter that runs entirely in the browser — no build step, no server, no dependencies. Defend your keep against 60 waves of raiders, brutes, knights, orcs, trolls, and warlords while earning gold to unlock 18 arrow types.
+A retro side-scrolling castle-defense shooter that runs entirely in the browser — no build step, no server, no dependencies. Defend your keep through 300 rounds against raiders, brutes, knights, orcs, trolls, and warlords while earning gold to unlock 18 arrow types.
 
 ## Play locally
 
@@ -52,7 +52,7 @@ All paths in the project are relative, so it works from the repository root or a
 ```text
 index.html     entry point
 style.css      all styling
-js/data.js     18 arrow definitions, enemy stats, 60 levels, difficulty
+js/data.js     18 arrow definitions, enemy stats, 300 campaign rounds, difficulty
 js/audio.js    WebAudio sound effects
 js/draw.js     rendering, world constants
 js/game.js     game loop and every arrow mechanic
@@ -62,3 +62,4 @@ test/smoke.html headless self-test
 ## License
 
 Free to use and modify for personal or commercial projects.
+

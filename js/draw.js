@@ -1039,6 +1039,37 @@ function drawArrowEnt(ctx, a) {
   ctx.save();
   ctx.translate(a.x, a.y);
   ctx.rotate(a.rot);
+  var magic = ({
+    chain: '#78e8ff', holy: '#ffe47a', glacial: '#9fe9ff',
+    leech: '#ff62c7', sunder: '#ffad62', shrapnel: '#ff7955',
+    homing: '#70f5d2', cluster: '#d29aff', gatling: '#fff078'
+  })[a.type];
+  if (magic) {
+    var pulse = 0.68 + Math.sin(ambT * 13 + a.x * 0.03) * 0.18;
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    ctx.shadowColor = magic;
+    ctx.shadowBlur = a.type === 'glacial' || a.type === 'holy' ? 20 : 14;
+    ctx.fillStyle = magic;
+    ctx.beginPath(); ctx.arc(2, 0, a.type === 'glacial' ? 7 : 5, 0, 6.2832); ctx.fill();
+    ctx.strokeStyle = magic;
+    ctx.lineWidth = a.type === 'glacial' ? 2 : 1.5;
+    ctx.beginPath(); ctx.moveTo(-23, 0); ctx.lineTo(3, 0); ctx.stroke();
+    if (a.type === 'chain') {
+      ctx.beginPath(); ctx.moveTo(-20, -3); ctx.lineTo(-15, 3); ctx.lineTo(-10, -3); ctx.lineTo(-5, 3); ctx.lineTo(0, -2); ctx.stroke();
+    } else if (a.type === 'holy') {
+      ctx.beginPath(); ctx.moveTo(2, -11); ctx.lineTo(4, -2); ctx.lineTo(11, 0); ctx.lineTo(4, 2); ctx.lineTo(2, 11); ctx.lineTo(0, 2); ctx.lineTo(-7, 0); ctx.lineTo(0, -2); ctx.closePath(); ctx.fill();
+    } else if (a.type === 'glacial') {
+      ctx.beginPath(); ctx.moveTo(-9, -7); ctx.lineTo(-6, -3); ctx.lineTo(-9, 1); ctx.lineTo(-12, -3); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-16, 4); ctx.lineTo(-13, 8); ctx.lineTo(-16, 12); ctx.lineTo(-19, 8); ctx.closePath(); ctx.fill();
+    } else if (a.type === 'leech') {
+      ctx.beginPath(); ctx.ellipse(-5, 0, 13, 5, Math.sin(ambT * 5) * 0.25, 0, 6.2832); ctx.stroke();
+    } else if (a.type === 'sunder' || a.type === 'shrapnel') {
+      ctx.beginPath(); ctx.moveTo(-16, -7); ctx.lineTo(-12, -2); ctx.lineTo(-16, 3); ctx.lineTo(-20, -2); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-5, 5); ctx.lineTo(-2, 9); ctx.lineTo(-5, 13); ctx.lineTo(-8, 9); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
   ctx.strokeStyle = '#5a4326';
   ctx.lineWidth = 2.6;
   ctx.lineCap = 'round';
@@ -1098,3 +1129,4 @@ function drawVignette(ctx) {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
 }
+

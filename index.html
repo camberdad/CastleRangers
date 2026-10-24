@@ -64,6 +64,7 @@
         <button class="btn big gold" data-action="play">Play</button>
         <button class="btn" data-action="levels">Level Select</button>
         <button class="btn" data-action="armory">Armory</button>
+        <button class="btn" data-action="highscores">High Scores</button>
         <button class="btn" data-action="profiles">Switch Player</button>
         <button class="btn" data-action="settings">Settings</button>
         <button class="btn" data-action="howto">How to Play</button>
@@ -163,6 +164,18 @@
     </div>
   </div>
 
+  <!-- ============ HIGH SCORES ============ -->
+  <div id="screen-highscores" class="screen hidden">
+    <div class="panel wide">
+      <h2>High Scores <span class="goldText" id="hsStatus"></span></h2>
+      <div id="hsBoard" class="hsBoard"></div>
+      <div class="panelBtns">
+        <button class="btn small" data-action="hsRefresh">Refresh</button>
+        <button class="btn" data-action="menu">Back</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ HOW TO PLAY ============ -->
   <div id="screen-howto" class="screen hidden">
     <div class="panel">
@@ -231,6 +244,8 @@
 <script src="js/data.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/draw.js"></script>
+<script src="js/leaderboard.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>
+

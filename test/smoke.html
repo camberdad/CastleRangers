@@ -61,6 +61,7 @@
     </div>
   </div>
   <div id="screen-howto" class="screen hidden"><div class="panel"><h2>How to Play</h2><div class="howText"><p>x</p></div><div class="panelBtns"><button class="btn" data-action="menu">Back</button></div></div></div>
+  <div id="screen-highscores" class="screen hidden"><div class="panel wide"><h2>High Scores <span class="goldText" id="hsStatus"></span></h2><div id="hsBoard" class="hsBoard"></div><div class="panelBtns"><button class="btn small" data-action="hsRefresh">Refresh</button><button class="btn" data-action="menu">Back</button></div></div></div>
   <div id="screen-pause" class="screen hidden"><div class="panel narrow"><h2>Paused</h2><div class="menu"><button class="btn gold" data-action="resume">Resume</button><button class="btn" data-action="pauseSettings">Settings</button><button class="btn" data-action="quit">Quit to Menu</button></div></div></div>
   <div id="screen-win" class="screen hidden">
     <div class="panel narrow">
@@ -101,6 +102,7 @@ window.onerror = function (msg, src, line, col, err) {
 <script src="../js/data.js" onload="ok('data.js loaded')" onerror="fail('data.js LOAD ERROR')"></script>
 <script src="../js/audio.js" onload="ok('audio.js loaded')" onerror="fail('audio.js LOAD ERROR')"></script>
 <script src="../js/draw.js" onload="ok('draw.js loaded')" onerror="fail('draw.js LOAD ERROR')"></script>
+<script src="../js/leaderboard.js" onload="ok('leaderboard.js loaded')" onerror="fail('leaderboard.js LOAD ERROR')"></script>
 <script src="../js/game.js" onload="ok('game.js loaded')" onerror="fail('game.js LOAD ERROR')"></script>
 <script>
 function pump(n) { for (var i = 0; i < n; i++) { step(1 / 60); render(); } }
@@ -355,6 +357,43 @@ function run() {
     if (ep.hp >= ep.maxHp) fail('poison burn did no damage');
     else ok('poison DOT ticks, hp=' + Math.round(ep.hp) + '/' + Math.round(ep.maxHp));
 
+    // shared high-score board (local + sanitize/merge logic)
+    if (typeof Leaderboard === 'undefined') fail('Leaderboard global missing');
+    else {
+      var lbTestName = 'SmokeBot';
+      try { Store.clear('cr_highscores'); } catch (e) {}
+      Player.create(lbTestName);
+      score = 4321; kills = 9; levelIdx = 4; PROGRESS.gold = 777; PROGRESS.equipped = 'holy'; SETTINGS.difficulty = 'hard';
+      submitScore(true, 3);
+      var lbBoard = Leaderboard.localBoard();
+      if (lbBoard.length !== 1) fail('leaderboard local board expected 1 entry, got ' + lbBoard.length);
+      else if (lbBoard[0].name !== lbTestName) fail('leaderboard entry name mismatch');
+      else if (lbBoard[0].score !== 4321) fail('leaderboard entry score mismatch: ' + lbBoard[0].score);
+      else if (lbBoard[0].gold !== 777) fail('leaderboard entry gold mismatch: ' + lbBoard[0].gold);
+      else if (lbBoard[0].level !== 5) fail('leaderboard entry level mismatch: ' + lbBoard[0].level);
+      else if (lbBoard[0].won !== true || lbBoard[0].stars !== 3) fail('leaderboard entry won/stars mismatch');
+      else ok('leaderboard records run (name/score/gold/level/stars)');
+
+      // sanitize clamps absurd values and trims names
+      var dirty = Leaderboard.submit({ name: '  averyveryverylongnameover16  ', score: 1e12, gold: -5, level: -3, kills: 1e9 }, null);
+      var saved = Leaderboard.localBoard();
+      var last = saved[saved.length - 1];
+      // find our dirty entry (highest score cap)
+      var capped = null;
+      for (var sI = 0; sI < saved.length; sI++) { if (saved[sI].score === LEADERBOARD_CONFIG.MAX_SCORE) capped = saved[sI]; }
+      if (!capped) fail('leaderboard sanitize did not clamp score');
+      else if (capped.name.length > 16) fail('leaderboard name not trimmed to 16');
+      else if (capped.gold !== 0) fail('leaderboard negative gold not clamped');
+      else if (capped.level < 1) fail('leaderboard level not clamped');
+      else ok('leaderboard sanitizes/clamps bad input');
+
+      // board renders header + rows
+      buildHighScores(lbBoard, false, 'unconfigured');
+      var hsRows = document.querySelectorAll('.hsRow').length;
+      if (hsRows < 2) fail('high-score board did not render rows (got ' + hsRows + ')');
+      else ok('high-score board renders ' + hsRows + ' rows (incl header)');
+    }
+
     // new mechanics: coins for castle damage, frost slow, cluster split, chain lightning, holy armor-pierce
     startLevel(0);
     var g1 = runGold;
@@ -495,4 +534,5 @@ window.addEventListener('load', function () { setTimeout(run, 40); });
 </script>
 </body>
 </html>
+
 
