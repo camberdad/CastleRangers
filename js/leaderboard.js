@@ -53,6 +53,114 @@ var Leaderboard = (function () {
   }
   function localSet(data) { Store.set(LOCAL_KEY, data); }
 
+  var TIME_KEY = 'cr_total_play_time';
+  var timeState = Store.get(TIME_KEY, { players: {} });
+  if (!timeState || !timeState.players) timeState = { players: {} };
+  Object.keys(timeState.players).forEach(function (key) {
+    timeState.players[key].syncing = false;
+    timeState.players[key].retryAt = 0;
+  });
+  var syncUrl = function () { return base + encodeURIComponent(LEADERBOARD_CONFIG.BIN_ID); };
+  var remoteWriteQueue = Promise.resolve();
+  function queueRemoteWrite(job) {
+    var queued = remoteWriteQueue.then(job, job);
+    remoteWriteQueue = queued.catch(function () {});
+    return queued;
+  }
+
+  function playerKey(name) { return String(name || 'Guest').trim().toLowerCase() || 'guest'; }
+  function playerTime(name) {
+    var key = playerKey(name);
+    if (!timeState.players[key]) {
+      var cached = localGet().scores.find(function (s) { return playerKey(s.name) === key; });
+      var baseline = cached ? Math.max(0, Number(cached.timePlayed) || 0) : 0;
+      timeState.players[key] = { total: baseline, pending: 0, syncing: false, retryAt: 0 };
+    }
+    return timeState.players[key];
+  }
+  function saveTimeState() {
+    var saved = { players: {} };
+    Object.keys(timeState.players).forEach(function (key) {
+      var rec = timeState.players[key];
+      saved.players[key] = { total: rec.total, pending: rec.pending, saveRemainder: rec.saveRemainder || 0 };
+    });
+    Store.set(TIME_KEY, saved);
+  }
+  function updateLocalTime(name, total) {
+    var data = localGet(), key = playerKey(name), changed = false;
+    data.scores.forEach(function (row) {
+      if (playerKey(row.name) === key && Number(row.timePlayed || 0) < total) {
+        row.timePlayed = Math.floor(total);
+        changed = true;
+      }
+    });
+    if (changed) localSet(data);
+  }
+  function overlayLocalTimes(scores) {
+    scores.forEach(function (row) {
+      var rec = timeState.players[playerKey(row.name)];
+      if (rec) row.timePlayed = Math.max(Number(row.timePlayed) || 0, Math.floor(rec.total));
+    });
+    return scores;
+  }
+  function persistRemoteTime(name, rec) {
+    if (!configured() || typeof fetch !== 'function' || rec.syncing || rec.pending < 15 || Date.now() < rec.retryAt) return;
+    rec.syncing = true;
+    var pendingAtStart = 0;
+    queueRemoteWrite(function () {
+      pendingAtStart = rec.pending;
+      return fetch(syncUrl(), { headers: headers(), cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+      .then(function (d) {
+        var raw = d && d.record && Array.isArray(d.record.scores) ? d.record.scores : (d && Array.isArray(d.scores) ? d.scores : []);
+        var scores = raw.map(sanitize), key = playerKey(name), row = null;
+        for (var i = 0; i < scores.length; i++) if (playerKey(scores[i].name) === key) { row = scores[i]; break; }
+        if (!row) { rec.retryAt = Date.now() + 15000; return false; }
+        var baseTotal = Math.max(Math.max(0, rec.total - rec.pending), Number(row.timePlayed) || 0);
+        var uploadedTotal = Math.floor(baseTotal + pendingAtStart);
+        row.timePlayed = uploadedTotal;
+        scores = oneRunPerPlayer(scores);
+        if (scores.length > LEADERBOARD_CONFIG.MAX_ENTRIES) scores = scores.slice(0, LEADERBOARD_CONFIG.MAX_ENTRIES);
+        return fetch(syncUrl(), { method: 'PUT', headers: headers(), body: JSON.stringify({ scores: scores }) })
+          .then(function (r2) { if (!r2.ok) throw new Error('http ' + r2.status); return uploadedTotal; });
+      });
+    })
+      .then(function (uploadedTotal) {
+        if (uploadedTotal === false || uploadedTotal == null) return;
+        var remaining = Math.max(0, rec.pending - pendingAtStart);
+        rec.total = uploadedTotal + remaining;
+        rec.pending = remaining;
+        rec.retryAt = 0;
+        updateLocalTime(name, rec.total);
+        saveTimeState();
+      })
+      .catch(function () { rec.retryAt = Date.now() + 15000; })
+      .then(function () { rec.syncing = false; });
+  }
+  function trackTime(name, dt) {
+    dt = Number(dt);
+    if (!isFinite(dt) || dt <= 0) return;
+    dt = Math.min(dt, 1);
+    var rec = playerTime(name);
+    rec.total += dt;
+    rec.pending += dt;
+    rec.saveRemainder = (rec.saveRemainder || 0) + dt;
+    if (rec.saveRemainder >= 1) {
+      rec.saveRemainder %= 1;
+      updateLocalTime(name, rec.total);
+      saveTimeState();
+    }
+    persistRemoteTime(name, rec);
+  }
+  function getPlayedTime(name) { return Math.floor(playerTime(name).total); }
+  function acceptPlayedTime(name, total) {
+    var rec = playerTime(name);
+    rec.total = Math.max(rec.total, Number(total) || 0);
+    rec.pending = Math.max(0, rec.total - (Number(total) || 0));
+    updateLocalTime(name, rec.total);
+    saveTimeState();
+  }
+
   function sanitize(entry) {
     var name = String(entry.name || 'Guest').trim().slice(0, 16) || 'Guest';
     var s = Math.max(0, Math.min(LEADERBOARD_CONFIG.MAX_SCORE, Math.floor(Number(entry.score) || 0)));
@@ -92,6 +200,7 @@ var Leaderboard = (function () {
       var player = String(entry.name || 'Guest').trim().toLowerCase() || 'guest';
       if (seen[player] !== undefined) {
         unique[seen[player]].level = Math.max(Number(unique[seen[player]].level) || 1, Number(entry.level) || 1);
+        unique[seen[player]].timePlayed = Math.max(Number(unique[seen[player]].timePlayed) || 0, Number(entry.timePlayed) || 0);
         continue;
       }
       seen[player] = unique.length;
@@ -115,17 +224,17 @@ var Leaderboard = (function () {
   function fetchBoard(cb) {
     var local = oneRunPerPlayer(localGet().scores);
     if (!configured() || typeof fetch !== 'function') {
-      cb({ online: false, scores: local, reason: configured() ? 'nocors' : 'unconfigured' });
+      cb({ online: false, scores: overlayLocalTimes(local), reason: configured() ? 'nocors' : 'unconfigured' });
       return;
     }
     fetch(base + encodeURIComponent(LEADERBOARD_CONFIG.BIN_ID), { headers: headers(), cache: 'no-store' })
       .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
       .then(function (d) {
         var scores = d && d.record && Array.isArray(d.record.scores) ? d.record.scores : (d && Array.isArray(d.scores) ? d.scores : []);
-        cb({ online: true, scores: oneRunPerPlayer(scores), reason: '' });
+        cb({ online: true, scores: overlayLocalTimes(oneRunPerPlayer(scores)), reason: '' });
       })
       .catch(function (e) {
-        cb({ online: false, scores: local, reason: 'offline' });
+        cb({ online: false, scores: overlayLocalTimes(local), reason: 'offline' });
       });
   }
 
@@ -143,22 +252,28 @@ var Leaderboard = (function () {
 
     if (!configured() || typeof fetch !== 'function') { cb(false, localGet().scores, 'unconfigured'); return; }
 
-    fetch(base + encodeURIComponent(LEADERBOARD_CONFIG.BIN_ID), { headers: headers(), cache: 'no-store' })
-      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
-      .then(function (d) {
-        var scores = d && d.record && Array.isArray(d.record.scores) ? d.record.scores : (d && Array.isArray(d.scores) ? d.scores : []);
-        scores = scores.map(sanitize);
-        scores.push(entry);
-        scores = oneRunPerPlayer(scores);
-        if (scores.length > LEADERBOARD_CONFIG.MAX_ENTRIES) scores = scores.slice(0, LEADERBOARD_CONFIG.MAX_ENTRIES);
-        return fetch(base + encodeURIComponent(LEADERBOARD_CONFIG.BIN_ID), {
-          method: 'PUT', headers: headers(), body: JSON.stringify({ scores: scores })
-        }).then(function (r2) {
-          if (!r2.ok) throw new Error('http ' + r2.status);
-          localSet({ scores: scores });
-          cb(true, scores, '');
+    queueRemoteWrite(function () {
+      return fetch(base + encodeURIComponent(LEADERBOARD_CONFIG.BIN_ID), { headers: headers(), cache: 'no-store' })
+        .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+        .then(function (d) {
+          var scores = d && d.record && Array.isArray(d.record.scores) ? d.record.scores : (d && Array.isArray(d.scores) ? d.scores : []);
+          scores = scores.map(sanitize);
+          scores.push(entry);
+          scores = oneRunPerPlayer(scores);
+          if (scores.length > LEADERBOARD_CONFIG.MAX_ENTRIES) scores = scores.slice(0, LEADERBOARD_CONFIG.MAX_ENTRIES);
+          return fetch(base + encodeURIComponent(LEADERBOARD_CONFIG.BIN_ID), {
+            method: 'PUT', headers: headers(), body: JSON.stringify({ scores: scores })
+          }).then(function (r2) {
+            if (!r2.ok) throw new Error('http ' + r2.status);
+            return scores;
+          });
         });
-      })
+    }).then(function (scores) {
+      localSet({ scores: scores });
+      var savedRow = scores.find(function (row) { return playerKey(row.name) === playerKey(entry.name); });
+      if (savedRow) acceptPlayedTime(entry.name, savedRow.timePlayed);
+      cb(true, scores, '');
+    })
       .catch(function () { cb(false, localGet().scores, 'offline'); });
   }
 
@@ -166,6 +281,8 @@ var Leaderboard = (function () {
     configured: configured,
     fetchBoard: fetchBoard,
     submit: submit,
+    trackTime: trackTime,
+    getPlayedTime: getPlayedTime,
     localBoard: function () { return oneRunPerPlayer(localGet().scores); },
     lastName: function () { return Player && Player.current ? Player.current : 'Guest'; }
   };

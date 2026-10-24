@@ -148,7 +148,7 @@ function buildHighScores(scores, online, reason) {
   var note = document.createElement('div');
   note.className = 'hsNote';
   if (online) {
-    note.textContent = 'Global board — ' + scores.length + ' run' + (scores.length === 1 ? '' : 's') + ' ranked. Refreshes every 15 seconds; each name keeps its best run.';
+    note.textContent = 'Global board — ' + scores.length + ' run' + (scores.length === 1 ? '' : 's') + ' ranked. Total playtime syncs about every 15 seconds during active play.';
   } else if (Leaderboard.configured()) {
     note.textContent = 'Could not reach the global board — showing this device’s local scores.';
   } else {
@@ -171,7 +171,7 @@ function buildHighScores(scores, online, reason) {
   head.innerHTML = '<span class="hsRank">#</span><span class="hsName">Archer</span>' +
     '<span class="hsScore">Score</span><span class="hsGold">Gold</span>' +
     '<span class="hsLvl">Level</span><span class="hsShots">Arrows Fired:</span>' +
-    '<span class="hsTime">Time Played</span><span class="hsMeta">Result</span>';
+    '<span class="hsTime">Total Time Played</span><span class="hsMeta">Result</span>';
   table.appendChild(head);
 
   scores.slice(0, 100).forEach(function (s, i) {
@@ -296,7 +296,7 @@ function submitScore(won, stars) {
     stars: stars || 0,
     kills: kills || 0,
     shots: arrowsShot,
-    timePlayed: Math.floor(elapsed / 1000),
+    timePlayed: Leaderboard.getPlayedTime(Player.current || 'Guest'),
     arrow: (p.equipped || 'std'),
     diff: (SETTINGS && SETTINGS.difficulty) || 'normal',
     won: !!won
@@ -884,6 +884,7 @@ function step(dt) {
 
 function update(dt) {
   elapsed += dt * 1000;
+  Leaderboard.trackTime(Player.current || 'Guest', dt);
 
   // storm lightning
   if (level.theme === 'storm') {
