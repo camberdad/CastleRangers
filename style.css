@@ -34,6 +34,17 @@ html, body {
   box-shadow: 0 0 60px rgba(0,0,0,.9);
 }
 
+#versionTag {
+  position: absolute;
+  right: 7px;
+  bottom: 4px;
+  z-index: 20;
+  color: rgba(217, 199, 154, .48);
+  font: 9px/1 Arial, sans-serif;
+  letter-spacing: .04em;
+  pointer-events: none;
+}
+
 canvas#game {
   position: absolute;
   inset: 0;
