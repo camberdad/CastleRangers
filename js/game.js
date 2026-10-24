@@ -80,6 +80,7 @@ function showTitle() {
   castleHP = castleMax = 100;
   level = null;
   keep = null;
+  window.dispatchEvent(new Event('castle-title-screen'));
 }
 function showLevels() {
   state = 'levels'; hideAllScreens(); hide(el.hud);
