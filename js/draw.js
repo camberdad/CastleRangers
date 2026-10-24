@@ -828,20 +828,24 @@ function drawEnemy(ctx, e) {
   ctx.beginPath(); ctx.arc(w * 0.06, hy, headR, 0, 6.2832); ctx.fill();
 
   // headgear
-  if (e.type === 'shield' || e.type === 'warlord' || e.type === 'captain') {
-    ctx.fillStyle = e.type === 'warlord' ? '#8a8f99' : '#7d838e';
+  if (e.type === 'shield' || e.type === 'warlord' || e.type === 'captain' || def.boss) {
+    ctx.fillStyle = e.type === 'warlord' ? '#8a8f99' : (e.type === 'frostgiant' ? '#c7f2ff' : (e.type === 'necromancer' ? '#443052' : (e.type === 'stormcaller' ? '#8acaff' : '#7d838e')));
     rr(ctx, w * 0.06 - headR - 1, hy - headR - 1, headR * 2 + 2, headR * 1.7, 4);
     ctx.fill();
     ctx.fillStyle = 'rgba(20,20,24,.85)';
     ctx.fillRect(w * 0.06 - headR, hy - 1, headR * 1.5, 3);
+    if (e.type === 'necromancer') {
+      ctx.fillStyle = '#c587ff';
+      ctx.beginPath(); ctx.arc(w * 0.06, hy - 1, 2.2, 0, 6.2832); ctx.fill();
+    }
     if (e.type === 'captain') {
       ctx.fillStyle = '#b83a2e';
       ctx.beginPath();
       ctx.ellipse(w * 0.06 + 2, hy - headR - 5, 3.5, 7, 0.35, 0, 6.2832);
       ctx.fill();
     }
-    if (e.type === 'warlord') {
-      ctx.fillStyle = '#e6d8b8';
+    if (e.type === 'warlord' || e.type === 'ogre' || e.type === 'frostgiant') {
+      ctx.fillStyle = e.type === 'frostgiant' ? '#d8f8ff' : '#e6d8b8';
       ctx.beginPath();
       ctx.moveTo(w * 0.06 - headR + 1, hy - headR + 2);
       ctx.lineTo(w * 0.06 - headR - 10, hy - headR - 14);
@@ -907,7 +911,7 @@ function drawEnemy(ctx, e) {
       ctx.fillStyle = '#e8c15a';
       ctx.font = 'bold 10px Georgia';
       ctx.textAlign = 'center';
-      ctx.fillText('WARLORD', 0, by - 5);
+      ctx.fillText(String(def.name || 'ELITE').toUpperCase(), 0, by - 5);
     }
   }
 
@@ -1023,11 +1027,11 @@ function arrowFletchColor(type) {
   if (type === 'poison') return '#9be85c';
   if (type === 'frost') return '#9fd8ff';
   if (type === 'chain') return '#ffe066';
+  if (type === 'lightning') return '#68dcff';
   if (type === 'holy') return '#fff3c4';
   if (type === 'cluster') return '#d0d0d0';
   if (type === 'gatling') return '#c2c2c2';
   if (type === 'fan') return '#dcc06a';
-  if (type === 'homing') return '#6ee0ff';
   if (type === 'sunder') return '#ffb066';
   if (type === 'glacial') return '#8fd6ff';
   if (type === 'leech') return '#ff5a7a';
@@ -1040,7 +1044,7 @@ function drawArrowEnt(ctx, a) {
   ctx.rotate(a.rot);
   var magic = ({
     chain: '#78e8ff', holy: '#ffe47a', glacial: '#9fe9ff',
-    leech: '#ff62c7', sunder: '#ffad62',
+    leech: '#ff62c7', sunder: '#ffad62', lightning: '#68dcff',
     homing: '#70f5d2', cluster: '#d29aff', gatling: '#fff078'
   })[a.type];
   if (magic) {
@@ -1058,6 +1062,8 @@ function drawArrowEnt(ctx, a) {
       ctx.beginPath(); ctx.moveTo(-20, -3); ctx.lineTo(-15, 3); ctx.lineTo(-10, -3); ctx.lineTo(-5, 3); ctx.lineTo(0, -2); ctx.stroke();
     } else if (a.type === 'holy') {
       ctx.beginPath(); ctx.moveTo(2, -11); ctx.lineTo(4, -2); ctx.lineTo(11, 0); ctx.lineTo(4, 2); ctx.lineTo(2, 11); ctx.lineTo(0, 2); ctx.lineTo(-7, 0); ctx.lineTo(0, -2); ctx.closePath(); ctx.fill();
+    } else if (a.type === 'lightning') {
+      ctx.beginPath(); ctx.moveTo(-19, -6); ctx.lineTo(-12, 1); ctx.lineTo(-15, -4); ctx.lineTo(-6, 5); ctx.stroke();
     } else if (a.type === 'glacial') {
       ctx.beginPath(); ctx.moveTo(-9, -7); ctx.lineTo(-6, -3); ctx.lineTo(-9, 1); ctx.lineTo(-12, -3); ctx.closePath(); ctx.fill();
       ctx.beginPath(); ctx.moveTo(-16, 4); ctx.lineTo(-13, 8); ctx.lineTo(-16, 12); ctx.lineTo(-19, 8); ctx.closePath(); ctx.fill();
