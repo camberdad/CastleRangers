@@ -356,6 +356,11 @@ canvas#game {
 .arrowCard .aDesc { font-size: 12.5px; font-style: italic; opacity: .75; min-height: 30px; }
 .arrowCard .aStats { font-size: 12px; opacity: .9; }
 .arrowCard .aStats b { color: #ffb3a5; }
+.arrowCard .powerPips { display: flex; gap: 4px; padding: 2px 0; }
+.arrowCard .powerPips i { display: block; width: 22px; height: 4px; border-radius: 4px; background: rgba(255,255,255,.16); }
+.arrowCard .powerPips i.active { background: var(--upgrade-color, var(--gold)); box-shadow: 0 0 7px var(--upgrade-color, var(--gold)); }
+.arrowCard .aUpgradePreview { color: #d8c9a8; font-size: 11px; line-height: 1.35; min-height: 28px; }
+.arrowCard .aUpgradePreview b { color: var(--upgrade-color, var(--gold)); }
 .arrowCard .btn { align-self: flex-start; margin-top: 2px; }
 .arrowCard .powerUpgrade { font-size: 11.5px; }
 .arrowCard .powerUpgrade:disabled { opacity: .55; cursor: not-allowed; }
