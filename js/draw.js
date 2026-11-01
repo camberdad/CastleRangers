@@ -1106,10 +1106,67 @@ function arrowFletchColor(type) {
   return '#e2e2e2';
 }
 
+function drawUpgradeSigil(ctx, motif, x, y, size) {
+  ctx.beginPath();
+  if (motif === 'diamond' || motif === 'crystal') {
+    ctx.moveTo(x, y - size); ctx.lineTo(x + size * 0.75, y); ctx.lineTo(x, y + size); ctx.lineTo(x - size * 0.75, y); ctx.closePath();
+  } else if (motif === 'blade' || motif === 'chevron') {
+    ctx.moveTo(x - size, y - size); ctx.lineTo(x + size, y); ctx.lineTo(x - size, y + size);
+  } else if (motif === 'flame') {
+    ctx.moveTo(x, y + size); ctx.quadraticCurveTo(x - size, y, x, y - size); ctx.quadraticCurveTo(x + size * 0.2, y, x + size, y - size * 0.55); ctx.quadraticCurveTo(x + size, y + size * 0.4, x, y + size); ctx.closePath();
+  } else if (motif === 'trident') {
+    ctx.moveTo(x, y + size); ctx.lineTo(x, y - size); ctx.moveTo(x - size, y - size); ctx.lineTo(x - size, y); ctx.moveTo(x + size, y - size); ctx.lineTo(x + size, y);
+  } else if (motif === 'drop') {
+    ctx.moveTo(x, y - size); ctx.quadraticCurveTo(x + size * 1.2, y + size * 0.2, x, y + size); ctx.quadraticCurveTo(x - size * 1.2, y + size * 0.2, x, y - size);
+  } else if (motif === 'snow') {
+    ctx.moveTo(x - size, y); ctx.lineTo(x + size, y); ctx.moveTo(x, y - size); ctx.lineTo(x, y + size); ctx.moveTo(x - size * .7, y - size * .7); ctx.lineTo(x + size * .7, y + size * .7); ctx.moveTo(x + size * .7, y - size * .7); ctx.lineTo(x - size * .7, y + size * .7);
+  } else if (motif === 'feather') {
+    ctx.moveTo(x - size, y + size); ctx.quadraticCurveTo(x - size, y - size, x + size, y - size); ctx.quadraticCurveTo(x + size * .5, y + size, x - size, y + size); ctx.moveTo(x - size, y + size); ctx.lineTo(x + size, y - size);
+  } else if (motif === 'burst' || motif === 'star') {
+    for (var s = 0; s < 8; s++) { var ang = s * Math.PI / 4; ctx.moveTo(x + Math.cos(ang) * size * .35, y + Math.sin(ang) * size * .35); ctx.lineTo(x + Math.cos(ang) * size, y + Math.sin(ang) * size); }
+  } else if (motif === 'cluster') {
+    ctx.arc(x - size * .45, y, size * .38, 0, 6.2832); ctx.moveTo(x + size * .83, y); ctx.arc(x + size * .45, y, size * .38, 0, 6.2832); ctx.moveTo(x + size * .25, y - size * .55); ctx.arc(x, y - size * .55, size * .3, 0, 6.2832);
+  } else if (motif === 'bolt' || motif === 'zigzag') {
+    ctx.moveTo(x - size, y - size); ctx.lineTo(x, y - size * .15); ctx.lineTo(x - size * .4, y + size * .1); ctx.lineTo(x + size, y + size);
+  } else if (motif === 'hammer') {
+    ctx.moveTo(x - size, y - size * .55); ctx.lineTo(x + size, y - size * .55); ctx.moveTo(x, y - size * .55); ctx.lineTo(x, y + size); ctx.moveTo(x - size, y + size); ctx.lineTo(x + size, y + size);
+  } else if (motif === 'orbit') {
+    ctx.ellipse(x, y, size, size * .58, 0.55, 0, 6.2832); ctx.moveTo(x + size * .1, y - size * .25); ctx.arc(x + size * .1, y - size * .25, size * .24, 0, 6.2832);
+  } else if (motif === 'coil') {
+    ctx.moveTo(x - size, y - size); ctx.lineTo(x, y - size); ctx.lineTo(x + size * .45, y); ctx.lineTo(x, y + size); ctx.lineTo(x - size, y + size); ctx.moveTo(x - size * .35, y - size * .55); ctx.lineTo(x + size * .55, y - size * .55); ctx.lineTo(x + size, y); ctx.lineTo(x + size * .55, y + size * .55);
+  }
+  ctx.stroke();
+  if (motif === 'diamond' || motif === 'drop' || motif === 'crystal') ctx.fill();
+}
+
 function drawArrowEnt(ctx, a) {
   ctx.save();
   ctx.translate(a.x, a.y);
   ctx.rotate(a.rot);
+  var upgradeLevel = a.upgradeLevel || 0;
+  if (upgradeLevel > 0 && typeof getArrowUpgradePath === 'function') {
+    var upgradePath = getArrowUpgradePath(a.type);
+    ctx.save();
+    ctx.globalAlpha = 0.62 + upgradeLevel * 0.075;
+    ctx.strokeStyle = upgradePath.color;
+    ctx.fillStyle = upgradePath.color;
+    ctx.shadowColor = upgradePath.color;
+    ctx.shadowBlur = 7 + upgradeLevel * 3;
+    ctx.lineWidth = 1 + upgradeLevel * 0.22;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (var mark = 0; mark < upgradeLevel; mark++) {
+      var markX = -5 - mark * 4.4;
+      var markSize = 1.8 + upgradeLevel * 0.27;
+      drawUpgradeSigil(ctx, upgradePath.motif, markX, 0, markSize);
+    }
+    if (upgradeLevel >= 3) {
+      ctx.globalAlpha *= 0.65;
+      ctx.lineWidth = 1.1;
+      ctx.beginPath(); ctx.ellipse(-6, 0, 7 + upgradeLevel, 4 + upgradeLevel * .4, Math.sin(ambT * 5 + a.x * .02) * .15, 0, 6.2832); ctx.stroke();
+    }
+    ctx.restore();
+  }
   var magic = ({
     chain: '#78e8ff', holy: '#ffe47a', glacial: '#9fe9ff',
     leech: '#ff62c7', sunder: '#ffad62', lightning: '#68dcff',
