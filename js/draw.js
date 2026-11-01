@@ -1098,7 +1098,7 @@ function arrowFletchColor(type) {
   if (type === 'lightning') return '#68dcff';
   if (type === 'holy') return '#fff3c4';
   if (type === 'cluster') return '#d0d0d0';
-  if (type === 'gatling') return '#c2c2c2';
+  if (type === 'gatling') return '#55f5ff';
   if (type === 'fan') return '#dcc06a';
   if (type === 'sunder') return '#ffb066';
   if (type === 'glacial') return '#8fd6ff';
@@ -1113,18 +1113,18 @@ function drawArrowEnt(ctx, a) {
   var magic = ({
     chain: '#78e8ff', holy: '#ffe47a', glacial: '#9fe9ff',
     leech: '#ff62c7', sunder: '#ffad62', lightning: '#68dcff',
-    homing: '#70f5d2', cluster: '#d29aff', gatling: '#fff078'
+    homing: '#70f5d2', cluster: '#d29aff', gatling: '#54f5ff'
   })[a.type];
   if (magic) {
     var pulse = 0.68 + Math.sin(ambT * 13 + a.x * 0.03) * 0.18;
     ctx.save();
     ctx.globalAlpha = pulse;
     ctx.shadowColor = magic;
-    ctx.shadowBlur = a.type === 'glacial' || a.type === 'holy' ? 20 : 14;
+    ctx.shadowBlur = a.type === 'gatling' ? 26 : (a.type === 'glacial' || a.type === 'holy' ? 20 : 14);
     ctx.fillStyle = magic;
     ctx.beginPath(); ctx.arc(2, 0, a.type === 'glacial' ? 7 : 5, 0, 6.2832); ctx.fill();
     ctx.strokeStyle = magic;
-    ctx.lineWidth = a.type === 'glacial' ? 2 : 1.5;
+    ctx.lineWidth = a.type === 'gatling' ? 3 : (a.type === 'glacial' ? 2 : 1.5);
     ctx.beginPath(); ctx.moveTo(-23, 0); ctx.lineTo(3, 0); ctx.stroke();
     if (a.type === 'chain') {
       ctx.beginPath(); ctx.moveTo(-20, -3); ctx.lineTo(-15, 3); ctx.lineTo(-10, -3); ctx.lineTo(-5, 3); ctx.lineTo(0, -2); ctx.stroke();
@@ -1143,11 +1143,12 @@ function drawArrowEnt(ctx, a) {
     }
     ctx.restore();
   }
-  ctx.strokeStyle = '#5a4326';
-  ctx.lineWidth = 2.6;
+  ctx.strokeStyle = a.type === 'gatling' ? '#e9ffff' : '#5a4326';
+  ctx.lineWidth = a.type === 'gatling' ? 3.4 : 2.6;
+  if (a.type === 'gatling') { ctx.shadowColor = '#54f5ff'; ctx.shadowBlur = 17; }
   ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(-24, 0); ctx.lineTo(5, 0); ctx.stroke();
-  ctx.fillStyle = a.type === 'fire' ? '#ff9a3c' : (a.type === 'frost' ? '#bfe8ff' : '#cfd6de');
+  ctx.fillStyle = a.type === 'gatling' ? '#fff7a1' : (a.type === 'fire' ? '#ff9a3c' : (a.type === 'frost' ? '#bfe8ff' : '#cfd6de'));
   ctx.beginPath();
   ctx.moveTo(6, 0); ctx.lineTo(-1, -4); ctx.lineTo(-1, 4); ctx.closePath(); ctx.fill();
   ctx.fillStyle = arrowFletchColor(a.type);
@@ -1155,6 +1156,7 @@ function drawArrowEnt(ctx, a) {
   ctx.moveTo(-24, 0); ctx.lineTo(-18, -5); ctx.lineTo(-14, 0); ctx.closePath();
   ctx.moveTo(-24, 0); ctx.lineTo(-18, 5); ctx.lineTo(-14, 0); ctx.closePath();
   ctx.fill();
+  if (a.type === 'gatling') { ctx.shadowBlur = 0; }
   ctx.restore();
 }
 
