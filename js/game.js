@@ -198,7 +198,9 @@ function buildHighScores(scores, online, reason) {
       '<span class="hsMeta"></span>';
     row.querySelector('.hsName').textContent = s.name || 'Guest';
     var meta = row.querySelector('.hsMeta');
-    meta.textContent = (s.levelsCompleted || 0) + ' levels completed · ' + (s.kills || 0) + ' total kills';
+    var completed = s.levelsCompleted;
+    if (completed == null) completed = Math.max(0, (Number(s.level) || 1) - (s.won ? 0 : 1));
+    meta.textContent = completed + ' levels completed · ' + (s.kills || 0) + ' total kills';
     table.appendChild(row);
   });
   board.appendChild(table);
