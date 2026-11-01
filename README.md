@@ -6,8 +6,8 @@ Castle Rangers is a browser-based castle-defense game. Aim and fire magical arro
 
 ### Latest update — V31
 
-- Replaces the High Scores “won” result with the total number of levels completed for each player, based on their saved level completions.
-- Syncs completed-level totals with live leaderboard updates and preserves the total on the global board.
+- Replaces the High Scores “won” result with each player's completed-level count, derived from their furthest unlocked level and whether the current run was won.
+- The count refreshes with the live leaderboard rows and includes existing global records.
 
 ## Previous updates
 
@@ -73,3 +73,4 @@ The project is published from the `main` branch of `camberdad/CastleRangers`. Gi
 - `js/leaderboard.js` — local and global leaderboard sync
 - `js/game.js` — game loop, combat, and interface
 - `js/version-check.js` / `version.json` — version and update check
+
