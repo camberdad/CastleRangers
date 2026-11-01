@@ -1732,7 +1732,7 @@ function updateHUD() {
   }
   el.scoreVal.textContent = score;
   el.roundVal.textContent = levelIdx + 1;
-  el.goldVal.textContent = runGold;
+  el.goldVal.textContent = (PROGRESS.gold || 0) + runGold;
   var alive = enemies.length;
   var pending = spawnQ.length - qi;
   el.waveInfo.textContent = 'Wave ' + currentWaveNum() + '/' + waves.length +
