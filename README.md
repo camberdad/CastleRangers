@@ -4,13 +4,12 @@
 
 Castle Rangers is a browser-based castle-defense game. Aim and fire magical arrows, earn coins, upgrade your armory, and defend your keep through 300 rounds. Player profiles keep progress between updates, and the global leaderboard tracks scores, levels, arrows fired, cumulative kills, and active playtime.
 
-### Latest update — V32
+### Latest update — V31
 
-- Replaces “Levels Completed” on the High Scores board with “Highest Level Passed”. The board shows the highest level the player has successfully cleared, including for existing leaderboard records.
+- Replaces the High Scores “won” result with each player's completed-level count, derived from their furthest unlocked level and whether the current run was won.
+- The count refreshes with the live leaderboard rows and includes existing global records.
 
 ## Previous updates
-
-- **V31 — Completed-level leaderboard stat:** Replaces the High Scores “won” result with each player's completed-level count, derived from their furthest unlocked level and whether the current run was won.
 
 - **V30 — Arrow upgrade paths:** Gives each arrow a unique five-step progression, wide-ranging prices, named bonuses, projectile sigils, and arrow-specific combat effects.
 
