@@ -352,10 +352,29 @@ function equipArrow(id) {
 
 var MAX_ARROW_UPGRADES = 5;
 var ARROW_UPGRADE_DAMAGE_PER_LEVEL = 0.15;
-var ARMORY_PRICE_MULTIPLIER = 1.2;
 var ARROW_PURCHASE_PRICE_MULTIPLIER = 1.885;
 var HIGH_TIER_ARROW_UNLOCK_ROUND = 20;
 var HIGH_TIER_ARROW_PRICE_MULTIPLIER = 1.5;
+var ARROW_UPGRADE_COST_STEPS = [1, 2.5, 6, 16, 42];
+var ARROW_UPGRADE_PATHS = {
+  std: { cost: 45, color: '#f3da8c', motif: 'diamond', names: ['Keen Edge', 'Swift Fletching', 'Twin Temper', 'Trueflight', 'Masterwork'], effects: ['Sharper point and +15% damage', 'Faster flight and stronger headshots', 'Adds reliable armor-piercing force', 'Near-perfect aim and another damage surge', 'Masterwork speed and devastating precision'] },
+  broad: { cost: 80, color: '#ffc247', motif: 'blade', names: ['Razor Bevel', 'Armor Splitter', 'Warhead Barbs', 'Siegebreaker', 'Executioner Crown'], effects: ['Adds an armor-piercing point', 'Stronger strike with a tempered core', 'Pierces a second foe', 'Deepens the armor punch', 'Pierces a line of three enemies'] },
+  fire: { cost: 125, color: '#ff672e', motif: 'flame', names: ['Kindled Core', 'Oil Baptism', 'Dragon Breath', 'Wildfire', 'Solar Inferno'], effects: ['Hotter burn and longer ignition', 'Adds a scorching splash', 'Burn pulses faster', 'Burning enemies ignite nearby foes', 'Inferno burn lasts longer and hits harder'] },
+  triple: { cost: 145, color: '#ff9d3c', motif: 'trident', names: ['Split Fletch', 'Triad Burst', 'Fourfold Volley', 'Quiver Echo', 'Fivefold Tempest'], effects: ['Broadens and strengthens the three-arrow spread', 'Adds a fourth arrow', 'Widens the four-arrow volley', 'Adds a fifth arrow', 'A sweeping five-arrow storm'] },
+  poison: { cost: 165, color: '#a8f542', motif: 'drop', names: ['Venom Coat', 'Virulent Dose', 'Nerve Rot', 'Plague Bloom', 'Abyssal Venom'], effects: ['More venom and longer poison', 'Poison ticks faster', 'Venom weakens enemy armor', 'Poison jumps to a nearby foe', 'Severe long-lasting plague damage'] },
+  frost: { cost: 175, color: '#85d9ff', motif: 'snow', names: ['Rime Edge', 'Deep Freeze', 'Permafrost', 'Whiteout', 'Absolute Zero'], effects: ['Longer chill and sharper ice', 'Enemies move slower', 'Adds a chance to freeze on impact', 'Chill reaches a wider area', 'Near-freezing enemies stay locked down'] },
+  pierce: { cost: 180, color: '#e4e8f0', motif: 'chevron', names: ['Hardpoint', 'Drill Tip', 'Ballista Core', 'Linebreaker', 'Worldpiercer'], effects: ['Pierces one more enemy', 'Stronger armor-drilling damage', 'Pierces a deeper line', 'More damage through armor', 'Pierces a long line of enemies'] },
+  fan: { cost: 190, color: '#ffd866', motif: 'feather', names: ['Feather Split', 'Wide Arc', 'Cyclone Volley', 'Tempest Fan', 'Skyfall'], effects: ['Adds a dart to the fan', 'Adds a seventh dart', 'Adds an eighth dart', 'Adds a ninth dart', 'Ten arrows sweep the field'] },
+  explosive: { cost: 240, color: '#ff783d', motif: 'burst', names: ['Spark Charge', 'Blast Casing', 'Shatterburst', 'Siege Payload', 'Starfall Bomb'], effects: ['Larger blast radius', 'Heavier explosive charge', 'Blast throws a second shock ring', 'Much wider siege explosion', 'Massive detonation with heavy splash'] },
+  cluster: { cost: 280, color: '#d18aff', motif: 'cluster', names: ['Scatter Core', 'Dart Flock', 'Swarm Split', 'Cloudburst', 'Meteor Cluster'], effects: ['Splits into one extra dart', 'Darts spread across a wider cone', 'Adds two splinter darts', 'Each dart hits harder', 'A dense storm of empowered darts'] },
+  lightning: { cost: 340, color: '#52efff', motif: 'bolt', names: ['Charge Node', 'Forking Bolt', 'Storm Conductor', 'Heavenstrike', 'Thunder God'], effects: ['Longer lightning reach', 'Chains to another enemy', 'Lightning deals stronger falloff damage', 'Strikes two additional enemies', 'Expanded multi-target storm strike'] },
+  chain: { cost: 320, color: '#61dfff', motif: 'zigzag', names: ['Copper Conduit', 'Arc Link', 'Storm Circuit', 'Chain Reaction', 'Tempest Network'], effects: ['Longer arcs and one extra jump', 'Chain damage falls off less', 'Adds another lightning jump', 'Much longer connection range', 'A far-reaching chain of empowered arcs'] },
+  glacial: { cost: 480, color: '#9cecff', motif: 'crystal', names: ['Crystal Growth', 'Cryo Focus', 'Polar Surge', 'Glacier Heart', 'Nova Crown'], effects: ['Wider freezing nova', 'Stronger and longer chill', 'Expanding crystal shockwave', 'Nova slows a broad battlefield', 'Enormous, deep-freezing blast'] },
+  holy: { cost: 430, color: '#fff08a', motif: 'star', names: ['Sanctified Edge', 'Sun Sigil', 'Judgement', 'Seraphic Lance', 'Divine Cataclysm'], effects: ['More damage to bosses', 'Radiant bolt pierces another foe', 'Boss smite grows stronger', 'Holy light pierces a full rank', 'Devastating judgement against bosses'] },
+  sunder: { cost: 520, color: '#ff9f52', motif: 'hammer', names: ['Maul Core', 'Fracture Rune', 'Cataclysm', 'Ruinous Impact', 'Worldshatter'], effects: ['Wider blast and armor fracture', 'Fracture lasts longer', 'Impact deals heavier splash damage', 'Larger explosion and deeper fracture', 'Crushing blast shatters armor'] },
+  leech: { cost: 390, color: '#ff58a9', motif: 'orbit', names: ['Sanguine Seal', 'Deep Siphon', 'Crimson Tide', 'Life Devourer', 'Eternal Hunger'], effects: ['Siphons more health', 'Longer reach and stronger healing', 'Adds a blood-rune impact burst', 'Drains more damage into the castle', 'Massive restorative siphon'] },
+  gatling: { cost: 220, color: '#54f5ff', motif: 'coil', names: ['Rapid Coil', 'Twin Dynamo', 'Overclock', 'Storm Feed', 'Infinite Arsenal'], effects: ['Faster single-bolt fire', 'Brighter bolts and faster cycling', 'Overclocked rapid fire', 'Extra speed and bolt power', 'Maximum automatic fire rate'] }
+};
 function getArrowUpgradeLevel(id) {
   return clamp(Math.floor(Number(PROGRESS.upgrades && PROGRESS.upgrades[id]) || 0), 0, MAX_ARROW_UPGRADES);
 }
@@ -363,9 +382,40 @@ function getArrowPowerMultiplier(id) {
   return 1 + getArrowUpgradeLevel(id) * ARROW_UPGRADE_DAMAGE_PER_LEVEL;
 }
 function getArrowUpgradeCost(id, level) {
-  var ar = ARROWS[id];
-  var baseCost = Math.max(60, Math.round((ar.cost || 100) * 0.08));
-  return Math.round(baseCost * ARMORY_PRICE_MULTIPLIER) * (level + 1);
+  var path = ARROW_UPGRADE_PATHS[id] || ARROW_UPGRADE_PATHS.std;
+  return Math.round(path.cost * ARROW_UPGRADE_COST_STEPS[level]);
+}
+function getArrowUpgradePath(id) {
+  return ARROW_UPGRADE_PATHS[id] || ARROW_UPGRADE_PATHS.std;
+}
+function getUpgradedArrow(id, level) {
+  var source = ARROWS[id] || ARROWS.std;
+  var ar = Object.assign({}, source);
+  ['burn', 'slow', 'explode', 'cluster', 'chain', 'lightning', 'sunder', 'nova'].forEach(function (key) {
+    if (source[key]) ar[key] = Object.assign({}, source[key]);
+  });
+  var n = clamp(level || 0, 0, MAX_ARROW_UPGRADES);
+  if (!n) return ar;
+  switch (id) {
+    case 'std': ar.speed *= 1 + n * 0.055; ar.headshotBonus = n * 0.1; ar.armorPierce = n >= 3 ? 0.1 + (n - 3) * 0.04 : 0; break;
+    case 'broad': ar.pierce = (ar.pierce || 0) + Math.ceil(n / 2); break;
+    case 'fire': ar.burn.dps *= 1 + n * 0.18; ar.burn.dur += n * 0.32; ar.splashBurn = n >= 2 ? 45 + n * 14 : 0; ar.burn.interval = n >= 3 ? 0.36 : 0.5; break;
+    case 'triple': ar.spreadCount += Math.floor(n / 2); ar.spreadSpan = 0.18 + n * 0.02; break;
+    case 'poison': ar.burn.dps *= 1 + n * 0.22; ar.burn.dur += n * 0.4; ar.burn.interval = Math.max(0.22, 0.5 - n * 0.045); ar.poisonArmorBreak = n * 0.04; break;
+    case 'frost': ar.slow.factor = Math.max(0.1, ar.slow.factor - n * 0.045); ar.slow.dur += n * 0.35; ar.freezeChance = n >= 3 ? (n - 2) * 0.08 : 0; ar.slow.splashRadius = n >= 4 ? 65 + n * 18 : 0; break;
+    case 'pierce': ar.pierce += n; break;
+    case 'fan': ar.spreadCount += n; ar.spreadSpan = 0.3 + n * 0.035; break;
+    case 'explosive': ar.explode.r += n * 22; ar.explode.mult += n * 0.11; ar.explode.secondRing = n >= 3; break;
+    case 'cluster': ar.cluster.count += n; ar.cluster.spread += n * 0.08; ar.cluster.damageMult = 0.55 + n * 0.07; break;
+    case 'lightning': ar.lightning.targets += Math.floor(n / 2); ar.lightning.range += n * 34; ar.lightning.falloff = Math.min(0.9, ar.lightning.falloff + n * 0.025); break;
+    case 'chain': ar.chain.jumps += Math.ceil(n / 2); ar.chain.range += n * 35; ar.chain.falloff = Math.min(0.88, ar.chain.falloff + n * 0.025); break;
+    case 'glacial': ar.nova.r += n * 22; ar.nova.factor = Math.max(0.08, ar.nova.factor - n * 0.025); ar.nova.dur += n * 0.4; break;
+    case 'holy': ar.pierce += Math.floor(n / 2); ar.holyBossMultiplier = 2 + n * 0.22; break;
+    case 'sunder': ar.explode.r += n * 18; ar.explode.mult += n * 0.14; ar.sunder.mult += n * 0.09; ar.sunder.dur += n * 0.25; break;
+    case 'leech': ar.leech = Math.min(0.95, ar.leech + n * 0.07); ar.leechRange = 90 + n * 28; break;
+    case 'gatling': ar.cadence = Math.max(0.045, ar.cadence * (1 - n * 0.09)); ar.speed *= 1 + n * 0.035; break;
+  }
+  return ar;
 }
 function getArrowPurchaseCost(id) {
   var multiplier = ARROW_PURCHASE_PRICE_MULTIPLIER;
@@ -390,23 +440,34 @@ function buildArmory() {
 
     var powerLevel = getArrowUpgradeLevel(id);
     var powerMult = getArrowPowerMultiplier(id);
-    var stats = 'Damage <b>' + Math.round(ar.dmg * powerMult) + '</b> · Power <b>' + powerLevel + '/' + MAX_ARROW_UPGRADES + '</b>';
+    var upgradePath = getArrowUpgradePath(id);
+    var upgradedStats = getUpgradedArrow(id, powerLevel);
+    var currentUpgradeName = powerLevel ? upgradePath.names[powerLevel - 1] : 'Base form';
+    var powerPips = '<div class="powerPips" aria-label="Power level ' + powerLevel + ' of ' + MAX_ARROW_UPGRADES + '">';
+    for (var pip = 0; pip < MAX_ARROW_UPGRADES; pip++) powerPips += '<i' + (pip < powerLevel ? ' class="active"' : '') + '></i>';
+    powerPips += '</div>';
+    card.style.setProperty('--upgrade-color', upgradePath.color);
+    var stats = 'Damage <b>' + Math.round(upgradedStats.dmg * powerMult) + '</b> · Power <b>' + powerLevel + '/' + MAX_ARROW_UPGRADES + '</b> · <b>' + currentUpgradeName + '</b>';
+    if (powerLevel) stats += ' · ' + upgradePath.effects[powerLevel - 1];
     if (ar.auto) stats += ' · <b>hold and aim cursor to fire automatically</b>';
-    if (ar.burn) stats += ' · ' + (ar.poison ? 'Poison' : 'Burn') + ' <b>' + Math.round(ar.burn.dps * powerMult) + '/s</b> for <b>' + ar.burn.dur + 's</b>';
-    if (ar.spread) stats += ' · <b>' + (ar.spreadCount || 3) + ' arrows</b> per shot';
-    if (ar.pierce) stats += ' · pierces <b>' + ar.pierce + '</b> enemies';
-    if (ar.explode) stats += ' · blast radius <b>' + ar.explode.r + '</b>';
-    if (ar.lightning) stats += ' · calls lightning on impact, hitting up to <b>' + ar.lightning.targets + ' monsters</b>';
-    if (ar.sunder) stats += ' · shatters armor, <b>+' + Math.round((ar.sunder.mult - 1) * 100) + '%</b> damage taken';
-    if (ar.nova) stats += ' · <b>chills all</b> within <b>' + ar.nova.r + '</b>';
-    if (ar.leech) stats += ' · heals castle <b>' + Math.round(ar.leech * 100) + '%</b> of damage';
-    if (ar.speed < 1) stats += ' · slightly slower';
-    if (ar.speed > 1) stats += ' · faster';
+    if (upgradedStats.burn) stats += ' · ' + (ar.poison ? 'Poison' : 'Burn') + ' <b>' + Math.round(upgradedStats.burn.dps * powerMult) + '/s</b> for <b>' + upgradedStats.burn.dur + 's</b>';
+    if (upgradedStats.spread) stats += ' · <b>' + (upgradedStats.spreadCount || 3) + ' arrows</b> per shot';
+    if (upgradedStats.pierce) stats += ' · pierces <b>' + upgradedStats.pierce + '</b> enemies';
+    if (upgradedStats.explode) stats += ' · blast radius <b>' + upgradedStats.explode.r + '</b>';
+    if (upgradedStats.lightning) stats += ' · calls lightning on impact, hitting up to <b>' + upgradedStats.lightning.targets + ' monsters</b>';
+    if (upgradedStats.sunder) stats += ' · shatters armor, <b>+' + Math.round((upgradedStats.sunder.mult - 1) * 100) + '%</b> damage taken';
+    if (upgradedStats.nova) stats += ' · <b>chills all</b> within <b>' + upgradedStats.nova.r + '</b>';
+    if (upgradedStats.leech) stats += ' · heals castle <b>' + Math.round(upgradedStats.leech * 100) + '%</b> of damage';
+    if (upgradedStats.speed < 1) stats += ' · slightly slower';
+    if (upgradedStats.speed > 1) stats += ' · faster';
 
     card.innerHTML =
       '<div class="aTop"><span class="aName">' + ar.icon + ' ' + ar.name + '</span>' + tag + '</div>' +
       '<div class="aDesc">' + ar.desc + '</div>' +
-      '<div class="aStats">' + stats + '</div>';
+      '<div class="aStats">' + stats + '</div>' + powerPips +
+      (powerLevel < MAX_ARROW_UPGRADES ? '<div class="aUpgradePreview">Next: <b>' + upgradePath.names[powerLevel] + '</b> — ' + upgradePath.effects[powerLevel] + '</div>' : '');
+    card.querySelector('.aName').style.color = upgradePath.color;
+    if (powerLevel) card.style.boxShadow = '0 0 ' + (6 + powerLevel * 5) + 'px ' + upgradePath.color + '66';
 
     var btn = document.createElement('button');
     btn.className = 'btn small' + (owned ? '' : ' gold');
@@ -439,7 +500,8 @@ function buildArmory() {
       powerBtn.disabled = true;
     } else {
       var powerCost = getArrowUpgradeCost(id, powerLevel);
-      powerBtn.textContent = 'Power +' + Math.round(ARROW_UPGRADE_DAMAGE_PER_LEVEL * 100) + '% — ' + powerCost + 'g';
+      powerBtn.textContent = 'Upgrade ' + (powerLevel + 1) + ': ' + upgradePath.names[powerLevel] + ' — ' + powerCost + 'g';
+      powerBtn.title = upgradePath.effects[powerLevel];
       powerBtn.disabled = PROGRESS.gold < powerCost;
       if (!powerBtn.disabled) powerBtn.addEventListener('click', function () {
         PROGRESS.gold -= powerCost;
@@ -494,19 +556,20 @@ function isAuto() { return SETTINGS.shootStyle !== 'drag'; }
 /* Solve a launch velocity from the bow that passes through (tx, ty).
    Low-arc solution; raises speed until the point is reachable.
    Close targets (enemies at the wall) get a direct-fire shot. */
-function solveBallistic(tx, ty) {
+function solveBallistic(tx, ty, speedMultiplier) {
+  speedMultiplier = speedMultiplier || 1;
   var dx = tx - BOW.x;
   if (dx < 6) { tx = BOW.x + 6; dx = 6; }
   var g = GRAVITY;
   if (dx < 188) {
     var dist = Math.hypot(dx, ty - BOW.y);
-    var t = dist / 2063;
+    var t = dist / (2063 * speedMultiplier);
     var vx = dx / t;
     var vy = (ty - BOW.y) / t - 0.5 * g * t;
     return { vx: vx, vy: vy, v: Math.hypot(vx, vy) };
   }
   var dyUp = BOW.y - ty; // positive when target is above the bow (y-up math)
-  var v = 1950;
+  var v = 1950 * speedMultiplier;
   for (var i = 0; i < 9; i++) {
     var a = g * dx * dx / (2 * v * v);
     var D = dx * dx - 4 * a * (dyUp + a);
@@ -523,7 +586,8 @@ function solveBallistic(tx, ty) {
 function autoFire(tx, ty) {
   if (state !== 'playing' || shotCooldown > 0) return;
   var ar = ARROWS[PROGRESS.equipped] || ARROWS.std;
-  var sol = ar.id === 'gatling' ? solveGatlingAim(tx, ty) : solveBallistic(tx, ty);
+  var tunedArrow = getUpgradedArrow(ar.id, getArrowUpgradeLevel(ar.id));
+  var sol = ar.id === 'gatling' ? solveGatlingAim(tx, ty) : solveBallistic(tx, ty, tunedArrow.speed);
   if (!sol) return;
   aimX = tx; aimY = ty;
   aimDX = sol.vx; aimDY = sol.vy;
@@ -531,21 +595,23 @@ function autoFire(tx, ty) {
   spawnVolley(ar, sol.vx, sol.vy, 0.85);
   Sound.shoot();
   recoil = 1;
-  shotCooldown = ar.cadence || 0.42;
+  shotCooldown = getUpgradedArrow(ar.id, getArrowUpgradeLevel(ar.id)).cadence || 0.42;
 }
 
 function solveGatlingAim(tx, ty) {
   var dx = tx - BOW.x, dy = ty - BOW.y;
-  if (dx >= 0) return solveBallistic(tx, ty);
+  var gatling = getUpgradedArrow('gatling', getArrowUpgradeLevel('gatling'));
+  if (dx >= 0) return solveBallistic(tx, ty, gatling.speed);
   var len = Math.hypot(dx, dy) || 1;
-  var speed = 2050;
+  var speed = 2050 * gatling.speed;
   return { vx: dx / len * speed, vy: dy / len * speed, v: speed };
 }
 
 function updateHover(px, py) {
   if (state !== 'playing' || !isAuto()) return;
   aimX = px; aimY = py;
-  lastSolve = PROGRESS.equipped === 'gatling' ? solveGatlingAim(px, py) : solveBallistic(px, py);
+  var equipped = ARROWS[PROGRESS.equipped] || ARROWS.std;
+  lastSolve = equipped.id === 'gatling' ? solveGatlingAim(px, py) : solveBallistic(px, py, getUpgradedArrow(equipped.id, getArrowUpgradeLevel(equipped.id)).speed);
   if (lastSolve) {
     aimDX = lastSolve.vx; aimDY = lastSolve.vy;
     aimPower = clamp(lastSolve.v / 1875, 0.35, 1);
@@ -657,6 +723,8 @@ document.addEventListener('visibilitychange', function () {
 
 /* ================= FIRING ================= */
 function spawnVolley(ar, vx, vy, power) {
+  var upgradeLevel = getArrowUpgradeLevel(ar.id);
+  ar = getUpgradedArrow(ar.id, upgradeLevel);
   var len = Math.hypot(vx, vy) || 1;
   var dx = vx / len, dy = vy / len;
   function mk(angOff) {
@@ -666,19 +734,24 @@ function spawnVolley(ar, vx, vy, power) {
     arrows.push({
       x: BOW.x + dx * 28, y: BOW.y + dy * 28, vx: mvx, vy: mvy,
       rot: Math.atan2(mvy, mvx), type: ar.id, dmg: ar.dmg * getArrowPowerMultiplier(ar.id),
-      burn: ar.burn ? { dps: ar.burn.dps * getArrowPowerMultiplier(ar.id), dur: ar.burn.dur } : null, poison: !!ar.poison,
+      burn: ar.burn ? { dps: ar.burn.dps * getArrowPowerMultiplier(ar.id), dur: ar.burn.dur, interval: ar.burn.interval || 0.5 } : null, poison: !!ar.poison,
       explode: ar.explode || null, pierceLeft: ar.pierce || 0, lastHitUid: -1,
       slow: ar.slow || null, chain: ar.chain || null, cluster: ar.cluster || null,
       holy: !!ar.holy, auto: !!ar.auto,
       homing: !!ar.homing, lightning: ar.lightning || null, leech: ar.leech || 0,
       sunder: ar.sunder || null, nova: ar.nova || null,
+      headshotBonus: ar.headshotBonus || 0, armorPierce: ar.armorPierce || 0,
+      poisonArmorBreak: ar.poisonArmorBreak || 0, splashBurn: ar.splashBurn || 0,
+      freezeChance: ar.freezeChance || 0, holyBossMultiplier: ar.holyBossMultiplier || 2,
+      leechRange: ar.leechRange || 0,
+      upgradeLevel: upgradeLevel,
       power: power, dead: false
     });
     arrowsShot++;
   }
   if (ar.spread) {
     var n = ar.spreadCount || 3;
-    var span = n <= 3 ? 0.18 : 0.3;
+      var span = ar.spreadSpan || (n <= 3 ? 0.18 : 0.3);
     if (n === 1) mk(0);
     else for (var s = 0; s < n; s++) mk(((s / (n - 1)) - 0.5) * span);
   }
@@ -686,7 +759,8 @@ function spawnVolley(ar, vx, vy, power) {
 }
 
 function fireArrow() {
-  var ar = ARROWS[PROGRESS.equipped] || ARROWS.std;
+  var baseArrow = ARROWS[PROGRESS.equipped] || ARROWS.std;
+  var ar = getUpgradedArrow(baseArrow.id, getArrowUpgradeLevel(baseArrow.id));
   var len = Math.hypot(aimDX, aimDY) || 1;
   var dx = aimDX / len, dy = aimDY / len;
   var speed = (671 + aimPower * 1375) * ar.speed;
@@ -700,6 +774,11 @@ function explodeAt(x, y, a) {
   Sound.explode();
   if (SETTINGS.shake) shake = Math.min(16, shake + 11);
   addText(x, y - 26, 'BOOM!', '#ffb35a', 20, 0.9);
+  if (a.explode.secondRing) {
+    var blastColor = getArrowUpgradePath(a.type).color;
+    particles.push({ kind: 'arcaneRing', x: x, y: y, r: a.explode.r * 0.35, vr: a.explode.r * 1.4,
+      life: 0.42, maxLife: 0.42, tint: blastColor });
+  }
   for (var i = 0; i < 22; i++) {
     var ang = Math.random() * Math.PI * 2;
     var sp = 80 + Math.random() * 260;
@@ -797,6 +876,22 @@ function spawnArcaneBurst(x, y, type) {
       r: 2 + Math.random() * 3, rot: ang, spin: (Math.random() - 0.5) * 9,
       life: 0.28 + Math.random() * 0.38, maxLife: 0.66, tint: color
     });
+  }
+}
+
+function spawnUpgradeImpact(x, y, type, level) {
+  if (!level) return;
+  var path = getArrowUpgradePath(type);
+  var life = 0.32 + level * 0.035;
+  particles.push({ kind: 'arcaneRing', x: x, y: y, r: 5 + level * 2, vr: 145 + level * 35,
+    life: life, maxLife: life, tint: path.color });
+  for (var i = 0; i < 2 + level * 2; i++) {
+    var ang = Math.random() * Math.PI * 2;
+    var speed = 65 + Math.random() * (90 + level * 28);
+    particles.push({ kind: 'arcane', x: x, y: y, vx: Math.cos(ang) * speed,
+      vy: Math.sin(ang) * speed - 28, r: 2 + level * 0.35, rot: ang,
+      spin: (Math.random() - 0.5) * (8 + level), life: 0.3 + Math.random() * 0.35,
+      maxLife: 0.65, tint: path.color });
   }
 }
 
@@ -947,8 +1042,9 @@ function spawnEnemy(type) {
     attackTimer: 1.1, didHit: false, attackT: 0,
     shotTimer: 1.2 + Math.random() * 1.5, shotAnim: 0,
     healTimer: def.healer ? 0.9 : 0,
-    burn: 0, burnDps: 0, burnTick: 0,
+    burn: 0, burnDps: 0, burnTick: 0, burnInterval: 0.5,
     slow: 0, slowFactor: 1, sunder: 0, sunderMult: 1,
+    armorWeak: 0, armorWeakTimer: 0,
     deathT: 0, deathRot: 0, alpha: 1,
     stopX: def.ranged ? 969 + Math.random() * 500 : 0,
     uid: ++uidSeq, burnKind: 'fire'
@@ -1102,10 +1198,10 @@ function updateArrows(dt) {
           arrows.push({
             x: a.x, y: a.y,
             vx: Math.cos(ang) * spd * 0.85, vy: Math.sin(ang) * spd * 0.85,
-            rot: ang, type: a.type, dmg: a.dmg * 0.55,
+            rot: ang, type: a.type, dmg: a.dmg * (cl.damageMult || 0.55),
             burn: null, poison: false, explode: null, pierceLeft: 0, lastHitUid: -1,
             slow: null, chain: null, cluster: null, holy: a.holy,
-            power: a.power, dead: false, split: true
+            power: a.power, upgradeLevel: a.upgradeLevel, dead: false, split: true
           });
         }
         addText(a.x, a.y - 12, 'SPLIT!', '#d0d0d0', 13, 0.7);
@@ -1126,7 +1222,7 @@ function updateArrows(dt) {
       var head = a.y < GROUND - e.h * 0.82;
       var dmg = a.dmg * (0.5 + 0.5 * a.power);
 
-      if (e.def.armor && !a.holy) dmg *= e.def.armor;
+      if (e.def.armor && !a.holy) dmg *= Math.max(0.12, e.def.armor - (e.armorWeak || 0) - (a.armorPierce || 0));
 
       if (e.def.shield && a.x < e.x + e.w * 0.45) {
         if (Math.random() < 0.45) {
@@ -1140,7 +1236,7 @@ function updateArrows(dt) {
       }
 
       if (head) {
-        dmg *= 2.4;
+        dmg *= 2.4 + (a.headshotBonus || 0);
         Sound.headshot();
         addText(a.x, a.y - 14, 'HEADSHOT!', '#ffd25a', 18, 1);
       } else {
@@ -1149,7 +1245,7 @@ function updateArrows(dt) {
 
       // holy bolts shred bosses
       if (a.holy && e.def.boss) {
-        dmg *= 2;
+        dmg *= a.holyBossMultiplier || 2;
         addText(a.x, a.y - 26, 'SMITE!', '#fff3c4', 16, 1);
       }
 
@@ -1159,8 +1255,49 @@ function updateArrows(dt) {
       if (a.burn && e.state !== 'dying') {
         e.burn = a.burn.dur;
         e.burnDps = a.burn.dps;
-        e.burnTick = 0.4;
+        e.burnInterval = a.burn.interval || 0.5;
+        e.burnTick = Math.min(0.4, e.burnInterval);
         e.burnKind = a.poison ? 'poison' : 'fire';
+      }
+      if (a.poisonArmorBreak && e.state !== 'dying') {
+        e.armorWeak = Math.max(e.armorWeak || 0, a.poisonArmorBreak);
+        e.armorWeakTimer = 3 + a.upgradeLevel * 0.35;
+        addText(a.x, a.y - 30, 'VENOM BREAK', '#a8f542', 12, 0.7);
+      }
+      if (a.poison && a.upgradeLevel >= 4) {
+        var plagueTarget = null, plagueDist = 160;
+        for (var pi = 0; pi < enemies.length; pi++) {
+          var plague = enemies[pi];
+          if (plague === e || plague.state === 'dying') continue;
+          var pd = Math.hypot(plague.x + plague.w / 2 - (e.x + e.w / 2), plague.h - e.h);
+          if (pd < plagueDist) { plagueDist = pd; plagueTarget = plague; }
+        }
+        if (plagueTarget) {
+          plagueTarget.burn = Math.max(plagueTarget.burn, a.burn.dur * 0.65);
+          plagueTarget.burnDps = Math.max(plagueTarget.burnDps, a.burn.dps * 0.6);
+          plagueTarget.burnInterval = a.burn.interval;
+          plagueTarget.burnTick = a.burn.interval;
+          plagueTarget.burnKind = 'poison';
+          plagueTarget.armorWeak = Math.max(plagueTarget.armorWeak || 0, a.poisonArmorBreak);
+          plagueTarget.armorWeakTimer = 3 + a.upgradeLevel * 0.35;
+          addText(plagueTarget.x + plagueTarget.w / 2, GROUND - plagueTarget.h - 18, 'PLAGUE!', '#a8f542', 13, 0.8);
+        }
+      }
+      if (a.type === 'fire' && a.upgradeLevel >= 4 && a.burn) {
+        var wildCount = 0;
+        for (var wi = 0; wi < enemies.length; wi++) {
+          var wild = enemies[wi];
+          if (wild === e || wild.state === 'dying' || wild.burn > 0) continue;
+          if (Math.hypot(wild.x + wild.w / 2 - (e.x + e.w / 2), wild.h - e.h) > 135) continue;
+          wild.burn = a.burn.dur * 0.7;
+          wild.burnDps = a.burn.dps * 0.55;
+          wild.burnTick = 0.35;
+          wild.burnInterval = 0.35;
+          wild.burnKind = 'fire';
+          spawnFlame(wild.x + wild.w / 2, GROUND - wild.h * 0.55, 'fire');
+          wildCount++;
+        }
+        if (wildCount) addText(e.x + e.w / 2, GROUND - e.h - 35, 'WILDFIRE!', '#ff7a38', 14, 0.8);
       }
 
       // frost chill
@@ -1168,6 +1305,23 @@ function updateArrows(dt) {
         e.slow = Math.max(e.slow, a.slow.dur);
         e.slowFactor = a.slow.factor;
         addText(a.x, a.y - 20, 'CHILLED', '#9fd8ff', 13, 0.8);
+        if (a.freezeChance && Math.random() < a.freezeChance) {
+          e.slow = Math.max(e.slow, 1.1);
+          e.slowFactor = 0;
+          addText(a.x, a.y - 40, 'FROZEN!', '#bff4ff', 14, 0.8);
+        }
+        if (a.slow.splashRadius) {
+          for (var fs = 0; fs < enemies.length; fs++) {
+            var frostTarget = enemies[fs];
+            if (frostTarget === e || frostTarget.state === 'dying') continue;
+            var frostDist = Math.hypot(frostTarget.x + frostTarget.w / 2 - (e.x + e.w / 2), frostTarget.h - e.h);
+            if (frostDist > a.slow.splashRadius) continue;
+            frostTarget.slow = Math.max(frostTarget.slow, a.slow.dur * 0.65);
+            frostTarget.slowFactor = Math.min(frostTarget.slowFactor || 1, a.slow.factor);
+            particles.push({ kind: 'arcaneRing', x: frostTarget.x + frostTarget.w / 2, y: GROUND - frostTarget.h * 0.5,
+              r: 4, vr: 100, life: 0.28, maxLife: 0.28, tint: getArrowUpgradePath('frost').color });
+          }
+        }
       }
 
       // sunder cracks the target's armor so follow-up hits land harder
@@ -1181,6 +1335,7 @@ function updateArrows(dt) {
       var boom = a.explode;
       damageEnemy(e, dmg, { head: head, arrow: a });
       spawnArcaneBurst(a.x, a.y, a.type);
+      spawnUpgradeImpact(a.x, a.y, a.type, a.upgradeLevel || 0);
 
       // Lightning Shot calls repeated bolts down onto nearby living monsters.
       if (a.lightning && !boom) {
@@ -1231,11 +1386,34 @@ function updateArrows(dt) {
       }
 
       // leech siphons part of the damage back into the castle wall
+      if (a.splashBurn) {
+        for (var fi = 0; fi < enemies.length; fi++) {
+          var fe = enemies[fi];
+          if (fe === e || fe.state === 'dying' || Math.hypot(fe.x + fe.w / 2 - (e.x + e.w / 2), fe.h - e.h) > a.splashBurn) continue;
+          fe.burn = Math.max(fe.burn, a.burn.dur * 0.45);
+          fe.burnDps = Math.max(fe.burnDps, a.burn.dps * 0.3);
+          fe.burnTick = 0.35; fe.burnInterval = 0.35; fe.burnKind = 'fire';
+          spawnFlame(fe.x + fe.w / 2, GROUND - fe.h * 0.5, 'fire');
+        }
+      }
+
       if (a.leech) {
         var heal = Math.round(dmg * a.leech);
         if (heal > 0) {
           castleHP = Math.min(castleMax, castleHP + heal);
           addText(a.x, a.y - 34, '+' + heal + ' HP', '#8effa0', 13, 0.85);
+          if (a.leechRange) {
+            for (var li = 0; li < enemies.length; li++) {
+              var le = enemies[li];
+              if (le === e || le.state === 'dying') continue;
+              var ld = Math.hypot(le.x + le.w / 2 - (e.x + e.w / 2), le.h - e.h);
+              if (ld < a.leechRange) {
+                var siphon = dmg * a.leech * 0.18;
+                damageEnemy(le, siphon, {});
+                castleHP = Math.min(castleMax, castleHP + siphon * a.leech * 0.5);
+              }
+            }
+          }
         }
       }
 
@@ -1298,6 +1476,7 @@ function updateArrows(dt) {
       var kdmg = a.dmg * (0.5 + 0.5 * a.power);
       damageKeep(kdmg, a.x, a.y);
       spawnArcaneBurst(a.x, a.y, a.type);
+      spawnUpgradeImpact(a.x, a.y, a.type, a.upgradeLevel || 0);
       spawnSparks(a.x, a.y);
       Sound.buildHit();
       if (!a.explode) {
@@ -1316,6 +1495,7 @@ function updateArrows(dt) {
     // ground
     if (a.y >= GROUND) {
       spawnArcaneBurst(a.x, GROUND - 6, a.type);
+      spawnUpgradeImpact(a.x, GROUND - 6, a.type, a.upgradeLevel || 0);
       if (a.explode && a.x > WALL_W + 6) explodeAt(a.x, GROUND - 6, a);
       else if (a.x > WALL_W + 6) {
         stuck.push({
@@ -1370,10 +1550,15 @@ function updateEnemies(dt) {
       e.burnTick -= dt;
       if (Math.random() < dt * 22) spawnFlame(e.x + e.w / 2, GROUND - e.h * 0.5, e.burnKind);
       if (e.burnTick <= 0) {
-        e.burnTick = 0.5;
+        e.burnTick = e.burnInterval || 0.5;
         damageEnemy(e, e.burnDps * 0.5, {});
         if (e.state === 'dying') continue;
       }
+    }
+
+    if (e.armorWeakTimer > 0) {
+      e.armorWeakTimer -= dt;
+      if (e.armorWeakTimer <= 0) { e.armorWeakTimer = 0; e.armorWeak = 0; }
     }
 
     if (e.shotAnim > 0) e.shotAnim -= dt;
