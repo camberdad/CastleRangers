@@ -6,7 +6,7 @@
   var safeStates = ['title', 'profiles', 'levels', 'armory', 'settings', 'howto', 'highscores'];
 
   function safeToReload() {
-    return safeStates.indexOf(window.state) >= 0;
+    return window.state == null || safeStates.indexOf(window.state) >= 0;
   }
 
   function reloadToVersion(version) {
