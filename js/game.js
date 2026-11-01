@@ -182,7 +182,7 @@ function buildHighScores(scores, online, reason) {
   head.innerHTML = '<span class="hsRank">#</span><span class="hsName">Archer</span>' +
     '<span class="hsScore">Score</span><span class="hsGold">Gold</span>' +
     '<span class="hsLvl">Level</span><span class="hsShots">Arrows Fired:</span>' +
-    '<span class="hsTime">Total Time Played</span><span class="hsMeta">Result</span>';
+    '<span class="hsTime">Total Time Played</span><span class="hsMeta">Levels Completed · Kills</span>';
   table.appendChild(head);
 
   scores.slice(0, 100).forEach(function (s, i) {
@@ -198,8 +198,7 @@ function buildHighScores(scores, online, reason) {
       '<span class="hsMeta"></span>';
     row.querySelector('.hsName').textContent = s.name || 'Guest';
     var meta = row.querySelector('.hsMeta');
-    meta.textContent = (s.active ? 'In progress' : (s.won ? '★'.repeat(Math.max(1, s.stars || 1)) + ' won' : 'fell')) +
-      ' · ' + (s.kills || 0) + ' total kills';
+    meta.textContent = (s.levelsCompleted || 0) + ' levels completed · ' + (s.kills || 0) + ' total kills';
     table.appendChild(row);
   });
   board.appendChild(table);
@@ -309,6 +308,7 @@ function submitScore(won, stars) {
     score: score,
     gold: (p.gold || 0),
     level: Math.max(levelIdx + 1, Math.max(1, (Number(p.unlocked) || 1) - 1)),
+    levelsCompleted: countCompletedLevels(p),
     stars: stars || 0,
     kills: Leaderboard.getTotalKills(Player.current || 'Guest'),
     shots: arrowsShot,
@@ -323,6 +323,13 @@ function submitScore(won, stars) {
       else if (Leaderboard.configured()) toast('Score saved (global board offline).');
     });
   } catch (e) { /* never let scoring break the game */ }
+}
+
+function countCompletedLevels(progress) {
+  var completed = progress && progress.stars || {};
+  return Object.keys(completed).reduce(function (total, levelNumber) {
+    return Number(completed[levelNumber]) > 0 ? total + 1 : total;
+  }, 0);
 }
 
 /* ================= ARMORY / AMMO ================= */
@@ -1926,6 +1933,7 @@ function loop(now) {
       score: score,
       gold: (PROGRESS.gold || 0) + runGold,
       level: Math.max(levelIdx + 1, Math.max(1, (Number(PROGRESS.unlocked) || 1) - 1)),
+      levelsCompleted: countCompletedLevels(PROGRESS),
       stars: 0,
       kills: Leaderboard.getTotalKills(playerName),
       shots: arrowsShot,
