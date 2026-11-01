@@ -271,6 +271,27 @@ var ENEMIES = {
     hp: 200, speed: 82, dmg: 16, gold: 35, score: 130, w: 48, h: 78,
     color: '#5c4a78', trim: '#3d3153', weapon: 'sword', armor: 0.75, name: 'Captain'
   },
+  scout: {
+    hp: 28, speed: 158, dmg: 5, gold: 8, score: 32, w: 32, h: 60,
+    color: '#c18b45', trim: '#76502a', markColor: '#ffe08a', weapon: 'dagger', name: 'Dust Scout'
+  },
+  slinger: {
+    hp: 36, speed: 92, dmg: 6, gold: 12, score: 48, w: 34, h: 62,
+    color: '#9b6a4f', trim: '#60412f', markColor: '#b8d7e8', weapon: 'crossbow', ranged: true, shotEvery: 3.1, name: 'Slinger'
+  },
+  bulwark: {
+    hp: 96, speed: 62, dmg: 11, gold: 20, score: 76, w: 50, h: 76,
+    color: '#557477', trim: '#354b4c', markColor: '#e4c26c', weapon: 'sword', shield: true, armor: 0.82, name: 'Bulwark'
+  },
+  hexer: {
+    hp: 54, speed: 68, dmg: 8, gold: 22, score: 82, w: 38, h: 70,
+    color: '#76518f', trim: '#48305b', auraColor: '#b78cff', weapon: 'crossbow', ranged: true, shotEvery: 3.3,
+    healer: true, healEvery: 4.4, healRange: 270, healAmount: 24, name: 'Hex Adept'
+  },
+  rammer: {
+    hp: 148, speed: 58, dmg: 20, gold: 24, score: 90, w: 58, h: 88,
+    color: '#8d5743', trim: '#553428', markColor: '#ff7856', weapon: 'club', armor: 0.92, name: 'Gate Rammer'
+  },
   warlord: {
     hp: 500, speed: 54, dmg: 27, gold: 150, score: 400, w: 76, h: 110,
     color: '#7a2420', trim: '#4a1512', weapon: 'axe', boss: true, name: 'Warlord'
@@ -295,6 +316,32 @@ var ENEMIES = {
     hp: 350, speed: 48, dmg: 12, gold: 100, score: 210, w: 58, h: 94,
     color: '#684778', trim: '#392848', weapon: 'crossbow', ranged: true, shotEvery: 3.0,
     healer: true, healEvery: 3.4, healRange: 340, healAmount: 40, boss: true, name: 'Necromancer'
+  },
+  ashenwyrm: {
+    hp: 480, speed: 66, dmg: 22, gold: 135, score: 280, w: 76, h: 108,
+    color: '#b65335', trim: '#642b24', helmColor: '#ed8b47', auraColor: '#ff794c', weapon: 'crossbow',
+    ranged: true, shotEvery: 2.2, boss: true, name: 'Ashen Wyrm'
+  },
+  gravetitan: {
+    hp: 760, speed: 34, dmg: 30, gold: 155, score: 320, w: 88, h: 126,
+    color: '#66717e', trim: '#39424d', helmColor: '#aab2bf', auraColor: '#aeb9cc', weapon: 'club',
+    armor: 0.78, boss: true, name: 'Grave Titan'
+  },
+  thornmatriarch: {
+    hp: 460, speed: 46, dmg: 18, gold: 150, score: 300, w: 66, h: 100,
+    color: '#587543', trim: '#354b2c', helmColor: '#9ccc64', auraColor: '#8fdc6a', weapon: 'crossbow',
+    ranged: true, shotEvery: 2.7, healer: true, healEvery: 3.2, healRange: 360, healAmount: 56,
+    boss: true, name: 'Thorn Matriarch'
+  },
+  voidduelist: {
+    hp: 540, speed: 86, dmg: 25, gold: 145, score: 310, w: 64, h: 104,
+    color: '#504c85', trim: '#302a58', helmColor: '#aaa2ff', auraColor: '#8b7cff', weapon: 'sword',
+    shield: true, armor: 0.88, boss: true, name: 'Void Duelist'
+  },
+  siegebehemoth: {
+    hp: 920, speed: 30, dmg: 42, gold: 170, score: 360, w: 94, h: 132,
+    color: '#805b3c', trim: '#4e3828', helmColor: '#e0ad59', auraColor: '#ffbd5d', weapon: 'club',
+    armor: 0.9, boss: true, name: 'Siege Behemoth'
   }
 };
 
@@ -313,35 +360,35 @@ var LEVELS = [
   {
     name: 'The First Raid', theme: 'day', hpMul: 1.0, spdMul: 1.0, gold: 40,
     waves: [
-      { units: [['raider', 5]], gap: 1500, pause: 2400 },
+      { units: [['raider', 4], ['scout', 1]], gap: 1500, pause: 2400 },
       { units: [['raider', 5]], gap: 1200 }
     ]
   },
   {
     name: 'Quick Feet', theme: 'day', hpMul: 1.0, spdMul: 1.0, gold: 55,
     waves: [
-      { units: [['raider', 4], ['runner', 3]], gap: 1100, pause: 2400 },
+      { units: [['raider', 4], ['runner', 2], ['slinger', 1]], gap: 1100, pause: 2400 },
       { units: [['runner', 6]], gap: 850 }
     ]
   },
   {
     name: 'Shield Wall', theme: 'day', hpMul: 1.05, spdMul: 1.0, gold: 70,
     waves: [
-      { units: [['raider', 4], ['shield', 2]], gap: 1200, pause: 2400 },
+      { units: [['raider', 4], ['shield', 1], ['bulwark', 1]], gap: 1200, pause: 2400 },
       { units: [['shield', 3], ['raider', 4]], gap: 950 }
     ]
   },
   {
     name: 'The Brute', theme: 'day', hpMul: 1.1, spdMul: 1.0, gold: 90,
     waves: [
-      { units: [['raider', 5], ['brute', 2]], gap: 1100, pause: 2400 },
+      { units: [['raider', 5], ['brute', 1], ['rammer', 1]], gap: 1100, pause: 2400 },
       { units: [['brute', 2], ['runner', 5]], gap: 900 }
     ]
   },
   {
     name: 'Dusk Patrol', theme: 'sunset', hpMul: 1.15, spdMul: 1.05, gold: 105,
     waves: [
-      { units: [['runner', 6], ['raider', 4]], gap: 900, pause: 2200 },
+      { units: [['runner', 6], ['raider', 3], ['hexer', 1]], gap: 900, pause: 2200 },
       { units: [['shield', 3], ['raider', 4]], gap: 1000, pause: 2200 },
       { units: [['brute', 2]], gap: 1500 }
     ]
@@ -558,11 +605,14 @@ var LEVELS = [
 /* Pure elite waves: one to five large monsters, with no regular troops mixed in. */
 (function addEarlyEliteWaves() {
   var eliteTypes = ['ogre', 'stormcaller', 'frostgiant', 'ravager', 'necromancer'];
+  var newBossTypes = ['ashenwyrm', 'gravetitan', 'thornmatriarch', 'voidduelist', 'siegebehemoth'];
   for (var round = 6; round <= 26; round += 5) {
     var count = 1 + Math.floor((round - 6) / 5);
     var start = Math.floor((round - 6) / 5) % eliteTypes.length;
-    var units = [];
-    for (var i = 0; i < count; i++) units.push([eliteTypes[(start + i) % eliteTypes.length], 1]);
+    var bossIndex = Math.floor((round - 6) / 5);
+    var units = [[newBossTypes[bossIndex], 1]];
+    for (var i = 1; i < count; i++) units.push([eliteTypes[(start + i - 1) % eliteTypes.length], 1]);
+    LEVELS[round - 1].boss = true;
     LEVELS[round - 1].waves.push({ units: units, gap: 2100, pause: 3000, elite: true });
   }
 })();
@@ -583,14 +633,15 @@ var LEVELS = [
   var rng = mulberry32(408172903);
   var themes = ['day', 'sunset', 'night', 'storm'];
   var pools = [
-    ['raider', 'runner', 'brute'],
-    ['raider', 'shield', 'runner', 'crossbow', 'ravager', 'ogre'],
-    ['shield', 'brute', 'crossbow', 'stormcaller', 'ravager', 'ogre'],
-    ['crossbow', 'captain', 'shield', 'stormcaller', 'frostgiant', 'necromancer'],
-    ['captain', 'brute', 'crossbow', 'runner', 'ogre', 'necromancer', 'ravager', 'stormcaller'],
-    ['captain', 'brute', 'shield', 'crossbow', 'runner', 'frostgiant', 'ogre', 'stormcaller', 'ravager', 'necromancer']
+    ['raider', 'runner', 'brute', 'scout', 'slinger'],
+    ['raider', 'shield', 'runner', 'crossbow', 'bulwark', 'rammer', 'ravager', 'ogre'],
+    ['shield', 'brute', 'crossbow', 'hexer', 'stormcaller', 'ravager', 'ogre'],
+    ['crossbow', 'captain', 'shield', 'slinger', 'stormcaller', 'frostgiant', 'necromancer'],
+    ['captain', 'brute', 'crossbow', 'runner', 'rammer', 'bulwark', 'ogre', 'necromancer', 'ravager', 'stormcaller'],
+    ['captain', 'brute', 'shield', 'crossbow', 'runner', 'scout', 'slinger', 'bulwark', 'hexer', 'rammer', 'frostgiant', 'ogre', 'stormcaller', 'ravager', 'necromancer']
   ];
   var eliteTypes = ['ogre', 'stormcaller', 'frostgiant', 'ravager', 'necromancer'];
+  var bossTypes = ['warlord', 'ashenwyrm', 'gravetitan', 'thornmatriarch', 'voidduelist', 'siegebehemoth'];
   var adj = ['Relentless', 'Silent', 'Burning', 'Iron', 'Shadow', 'Crimson', 'Frozen', 'Hollow', 'Raging', 'Astral'];
   var noun = ['Horde', 'March', 'Tide', 'Siege', 'Onslaught', 'Vanguard', 'Legion', 'Assault', 'Reign', 'Eclipse'];
   for (var i = 0; i < 270; i++) {
@@ -629,7 +680,8 @@ var LEVELS = [
       waves.push({ units: eliteUnits, gap: 2100, pause: 3000, elite: true });
     }
     if (boss) {
-      waves.push({ units: [['warlord', 1], ['captain', Math.min(4, 1 + Math.floor(i / 60))]], gap: 1900, pause: 2600, elite: true });
+      var bossType = bossTypes[Math.floor((n - 30) / 10) % bossTypes.length];
+      waves.push({ units: [[bossType, 1], ['captain', Math.min(4, 1 + Math.floor(i / 60))]], gap: 1900, pause: 2600, elite: true });
     }
     LEVELS.push({
       name: adj[i % adj.length] + ' ' + noun[Math.floor(i / adj.length) % noun.length] + ' ' + n,

@@ -837,6 +837,25 @@ function drawEnemy(ctx, e) {
   var sw = walk ? Math.sin(e.walkT) : 0;
   var bodyBob = walk ? Math.abs(Math.sin(e.walkT)) * 2.5 : Math.sin(e.t * 2) * 1.2;
 
+  if (def.auraColor) {
+    ctx.save();
+    ctx.globalAlpha = 0.22 + 0.08 * Math.sin(e.t * 4);
+    ctx.strokeStyle = def.auraColor;
+    ctx.lineWidth = def.boss ? 4 : 2.5;
+    ctx.beginPath();
+    ctx.ellipse(0, -h * 0.48, w * 0.62, h * 0.3, 0, 0, 6.2832);
+    ctx.stroke();
+    ctx.globalAlpha = 0.72;
+    for (var auraBit = 0; auraBit < (def.boss ? 5 : 3); auraBit++) {
+      var auraAngle = e.t * 1.8 + auraBit * 6.2832 / (def.boss ? 5 : 3);
+      ctx.beginPath();
+      ctx.arc(Math.cos(auraAngle) * w * 0.56, -h * 0.52 + Math.sin(auraAngle) * h * 0.24, def.boss ? 3.2 : 2.2, 0, 6.2832);
+      ctx.fillStyle = def.auraColor;
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   /* legs */
   var legSwing = sw * (def.boss ? 8 : 6);
   ctx.strokeStyle = '#33313a';
@@ -848,6 +867,7 @@ function drawEnemy(ctx, e) {
   ctx.moveTo(w * 0.14, -legH);
   ctx.lineTo(w * 0.14 + legSwing, 0);
   ctx.stroke();
+
   // boots
   ctx.strokeStyle = '#241f18';
   ctx.lineWidth = w * 0.22;
@@ -874,6 +894,12 @@ function drawEnemy(ctx, e) {
   ctx.moveTo(-w * 0.3, top + 4);
   ctx.lineTo(w * 0.3, top + bodyH - 12);
   ctx.stroke();
+  if (def.markColor) {
+    ctx.fillStyle = def.markColor;
+    ctx.beginPath();
+    ctx.arc(0, top + bodyH * 0.46, Math.max(3, w * 0.1), 0, 6.2832);
+    ctx.fill();
+  }
 
   // armor plate
   if (def.armor) {
@@ -897,7 +923,7 @@ function drawEnemy(ctx, e) {
 
   // headgear
   if (e.type === 'shield' || e.type === 'warlord' || e.type === 'captain' || def.boss) {
-    ctx.fillStyle = e.type === 'warlord' ? '#8a8f99' : (e.type === 'frostgiant' ? '#c7f2ff' : (e.type === 'necromancer' ? '#443052' : (e.type === 'stormcaller' ? '#8acaff' : '#7d838e')));
+    ctx.fillStyle = def.helmColor || (e.type === 'warlord' ? '#8a8f99' : (e.type === 'frostgiant' ? '#c7f2ff' : (e.type === 'necromancer' ? '#443052' : (e.type === 'stormcaller' ? '#8acaff' : '#7d838e'))));
     rr(ctx, w * 0.06 - headR - 1, hy - headR - 1, headR * 2 + 2, headR * 1.7, 4);
     ctx.fill();
     ctx.fillStyle = 'rgba(20,20,24,.85)';
@@ -923,6 +949,16 @@ function drawEnemy(ctx, e) {
       ctx.moveTo(w * 0.06 + headR - 1, hy - headR + 2);
       ctx.lineTo(w * 0.06 + headR + 10, hy - headR - 14);
       ctx.lineTo(w * 0.06 + headR - 7, hy - headR - 2);
+      ctx.closePath(); ctx.fill();
+    }
+    if (def.auraColor && def.boss) {
+      ctx.fillStyle = def.helmColor || def.auraColor;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.06 - headR + 3, hy - headR + 1);
+      ctx.lineTo(w * 0.06 - headR - 5, hy - headR - 11);
+      ctx.lineTo(w * 0.06 - 1, hy - headR + 2);
+      ctx.lineTo(w * 0.06 + headR + 5, hy - headR - 11);
+      ctx.lineTo(w * 0.06 + headR - 3, hy - headR + 1);
       ctx.closePath(); ctx.fill();
     }
   } else if (e.type === 'runner' || e.type === 'crossbow') {
