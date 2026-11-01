@@ -391,7 +391,7 @@ function buildArmory() {
     var powerLevel = getArrowUpgradeLevel(id);
     var powerMult = getArrowPowerMultiplier(id);
     var stats = 'Damage <b>' + Math.round(ar.dmg * powerMult) + '</b> · Power <b>' + powerLevel + '/' + MAX_ARROW_UPGRADES + '</b>';
-    if (ar.auto) stats += ' · <b>hold cursor button to fire</b>';
+    if (ar.auto) stats += ' · <b>hold and aim cursor to fire automatically</b>';
     if (ar.burn) stats += ' · ' + (ar.poison ? 'Poison' : 'Burn') + ' <b>' + Math.round(ar.burn.dps * powerMult) + '/s</b> for <b>' + ar.burn.dur + 's</b>';
     if (ar.spread) stats += ' · <b>' + (ar.spreadCount || 3) + ' arrows</b> per shot';
     if (ar.pierce) stats += ' · pierces <b>' + ar.pierce + '</b> enemies';
@@ -523,7 +523,7 @@ function solveBallistic(tx, ty) {
 function autoFire(tx, ty) {
   if (state !== 'playing' || shotCooldown > 0) return;
   var ar = ARROWS[PROGRESS.equipped] || ARROWS.std;
-  var sol = solveBallistic(tx, ty);
+  var sol = ar.id === 'gatling' ? solveGatlingAim(tx, ty) : solveBallistic(tx, ty);
   if (!sol) return;
   aimX = tx; aimY = ty;
   aimDX = sol.vx; aimDY = sol.vy;
@@ -534,10 +534,18 @@ function autoFire(tx, ty) {
   shotCooldown = ar.cadence || 0.42;
 }
 
+function solveGatlingAim(tx, ty) {
+  var dx = tx - BOW.x, dy = ty - BOW.y;
+  if (dx >= 0) return solveBallistic(tx, ty);
+  var len = Math.hypot(dx, dy) || 1;
+  var speed = 2050;
+  return { vx: dx / len * speed, vy: dy / len * speed, v: speed };
+}
+
 function updateHover(px, py) {
   if (state !== 'playing' || !isAuto()) return;
   aimX = px; aimY = py;
-  lastSolve = solveBallistic(px, py);
+  lastSolve = PROGRESS.equipped === 'gatling' ? solveGatlingAim(px, py) : solveBallistic(px, py);
   if (lastSolve) {
     aimDX = lastSolve.vx; aimDY = lastSolve.vy;
     aimPower = clamp(lastSolve.v / 1875, 0.35, 1);
@@ -547,8 +555,8 @@ function updateHover(px, py) {
 cv.addEventListener('mousedown', function (e) {
   Sound.resume();
   if (state !== 'playing') return;
-  if (PROGRESS.equipped === 'gatling') { fireHeld = true; return; }
   var p = toWorld(e.clientX, e.clientY);
+  if (PROGRESS.equipped === 'gatling') { fireHeld = true; hoverActive = true; updateHover(p.x, p.y); return; }
   if (isAuto()) {
     hoverActive = true;
     autoFire(p.x, p.y);
@@ -581,7 +589,7 @@ cv.addEventListener('touchstart', function (e) {
   if (state !== 'playing') return;
   var t = e.touches[0];
   var p = toWorld(t.clientX, t.clientY);
-  if (PROGRESS.equipped === 'gatling') { fireHeld = true; return; }
+  if (PROGRESS.equipped === 'gatling') { fireHeld = true; hoverActive = true; updateHover(p.x, p.y); return; }
   if (isAuto()) {
     autoFire(p.x, p.y);
   } else {
@@ -590,6 +598,13 @@ cv.addEventListener('touchstart', function (e) {
   }
 }, { passive: false });
 window.addEventListener('touchmove', function (e) {
+  if (PROGRESS.equipped === 'gatling' && fireHeld) {
+    e.preventDefault();
+    var gatlingTouch = e.touches[0];
+    var gatlingPoint = toWorld(gatlingTouch.clientX, gatlingTouch.clientY);
+    updateHover(gatlingPoint.x, gatlingPoint.y);
+    return;
+  }
   if (isAuto() || !aimActive) return;
   e.preventDefault();
   var t = e.touches[0];
@@ -998,23 +1013,11 @@ function update(dt) {
   updateTexts(dt);
   updateDecals(dt);
 
-  // Gatling fires at its best target only while the cursor button is held.
+  // Gatling sends one cursor-aimed bolt per cadence while the cursor button is held.
   var eq = PROGRESS.equipped;
   var arEq = ARROWS[eq] || ARROWS.std;
   if (state === 'playing' && arEq.auto && fireHeld && shotCooldown <= 0) {
-    var best = null, bestDist = 1e12;
-    for (var i = 0; i < enemies.length; i++) {
-      var de = enemies[i];
-      if (de.state !== 'dying') {
-        var d = Math.hypot((de.x + de.w / 2) - 1845, (GROUND - de.h * 0.55) - 780);
-        if (d < bestDist) { bestDist = d; best = de; }
-      }
-    }
-    if (best) {
-      autoFire(best.x + best.w / 2 - best.speed * 0.3, GROUND - best.h * 0.55);
-    } else if (enemies.length === 0 && keep && !keep.destroyed) {
-      autoFire(1845, 780);
-    }
+    autoFire(aimX, aimY);
   }
 
   // castle smoke when badly damaged
