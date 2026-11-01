@@ -90,12 +90,26 @@ function migrateLightningArrow(progress) {
 var DEFAULT_PROGRESS = {
   unlocked: 1,              // highest playable level (1-based)
   gold: 0,
+  totalScore: 0,            // score banked across all finished attempts
+  totalExp: 0,              // lifetime experience earned by this account
   stars: {},                // { levelIndex(1-based): 0-3 }
   best: {},                 // { levelIndex: best score }
   owned: ['std'],
   equipped: 'std',
   upgrades: {}
 };
+
+function ensureLifetimeStats(progress) {
+  if (!progress || typeof progress !== 'object') return;
+  if (!progress.best || typeof progress.best !== 'object') progress.best = {};
+  if (!isFinite(Number(progress.totalScore))) {
+    progress.totalScore = Object.keys(progress.best).reduce(function (sum, levelNumber) {
+      return sum + Math.max(0, Math.floor(Number(progress.best[levelNumber]) || 0));
+    }, 0);
+  }
+  progress.totalScore = Math.max(0, Math.floor(Number(progress.totalScore) || 0));
+  progress.totalExp = Math.max(progress.totalScore, 0, Math.floor(Number(progress.totalExp) || 0));
+}
 
 var PROGRESS = Object.assign({}, DEFAULT_PROGRESS, readPersistentSave('cr_progress', 'cr_progress_backup', validProgressSave, {}));
 if (!Array.isArray(PROGRESS.owned) || PROGRESS.owned.indexOf('std') < 0) PROGRESS.owned = ['std'];
@@ -104,6 +118,7 @@ if (!PROGRESS.equipped || PROGRESS.owned.indexOf(PROGRESS.equipped) < 0) PROGRES
 if (typeof PROGRESS.unlocked !== 'number' || PROGRESS.unlocked < 1) PROGRESS.unlocked = 1;
 migrateRemovedArrow(PROGRESS);
 migrateLightningArrow(PROGRESS);
+ensureLifetimeStats(PROGRESS);
 
 function saveProgress() {
   if (Player.current) Player.save();
@@ -134,6 +149,7 @@ var Player = {
     if (typeof PROGRESS.unlocked !== 'number' || PROGRESS.unlocked < 1) PROGRESS.unlocked = 1;
     migrateRemovedArrow(PROGRESS);
     migrateLightningArrow(PROGRESS);
+    ensureLifetimeStats(PROGRESS);
     this.db.last = name;
     this.db = writePersistentSave('cr_players', 'cr_players_backup', this.db);
     writePersistentSave('cr_progress', 'cr_progress_backup', PROGRESS);

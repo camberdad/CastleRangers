@@ -4,12 +4,14 @@
 
 Castle Rangers is a browser-based castle-defense game. Aim and fire magical arrows, earn coins, upgrade your armory, and defend your keep through 300 rounds. Player profiles keep progress between updates, and the global leaderboard tracks scores, levels, arrows fired, cumulative kills, and active playtime.
 
-### Latest update — V33
+### Latest update — V34
 
-- Adds five regular enemy types and five new named bosses, with new visual accents and distinct ranged, armored, shielded, and healing roles.
-- Brings the new regular enemies into the opening rounds and introduces the new bosses in early elite-only waves from Round 6 onward; the 300-round campaign also mixes them into later waves.
+- Makes leaderboard scores cumulative across each account's finished runs and displays the total on the board.
+- Adds lifetime EXP to the main menu; enemies grant EXP and clearing a round grants a bonus.
 
 ## Previous updates
+
+- **V33 — New enemy roster:** Adds five regular enemy types and five bosses, introducing new regular enemies in Rounds 1–5 and the new bosses in early elite waves from Round 6 onward.
 
 - **V32 — Total coins indicator:** Shows saved coins plus coins earned during the current round in the HUD.
 
