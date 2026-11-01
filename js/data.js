@@ -102,10 +102,11 @@ var DEFAULT_PROGRESS = {
 function ensureLifetimeStats(progress) {
   if (!progress || typeof progress !== 'object') return;
   if (!progress.best || typeof progress.best !== 'object') progress.best = {};
-  if (!isFinite(Number(progress.totalScore))) {
-    progress.totalScore = Object.keys(progress.best).reduce(function (sum, levelNumber) {
-      return sum + Math.max(0, Math.floor(Number(progress.best[levelNumber]) || 0));
-    }, 0);
+  var scoreFromBestLevels = Object.keys(progress.best).reduce(function (sum, levelNumber) {
+    return sum + Math.max(0, Math.floor(Number(progress.best[levelNumber]) || 0));
+  }, 0);
+  if (!isFinite(Number(progress.totalScore)) || Number(progress.totalScore) < scoreFromBestLevels) {
+    progress.totalScore = scoreFromBestLevels;
   }
   progress.totalScore = Math.max(0, Math.floor(Number(progress.totalScore) || 0));
   progress.totalExp = Math.max(progress.totalScore, 0, Math.floor(Number(progress.totalExp) || 0));
