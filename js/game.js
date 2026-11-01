@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 21816)
-Total output lines: 2096
-
 /* ============ Castle Rangers :: game core ============ */
 
 var cv = document.getElementById('game');
@@ -505,7 +502,833 @@ function buildArmory() {
     var powerBtn = document.createElement('button');
     powerBtn.className = 'btn small powerUpgrade';
     if (!owned) {
-      powerBtn.textCon…7816 tokens truncated…color });
+      powerBtn.textContent = 'Unlock arrow to upgrade power';
+      powerBtn.disabled = true;
+    } else if (powerLevel >= MAX_ARROW_UPGRADES) {
+      powerBtn.textContent = 'Power Maxed (5/5)';
+      powerBtn.disabled = true;
+    } else {
+      var powerCost = getArrowUpgradeCost(id, powerLevel);
+      powerBtn.textContent = 'Upgrade ' + (powerLevel + 1) + ': ' + upgradePath.names[powerLevel] + ' — ' + powerCost + 'g';
+      powerBtn.title = upgradePath.effects[powerLevel];
+      powerBtn.disabled = PROGRESS.gold < powerCost;
+      if (!powerBtn.disabled) powerBtn.addEventListener('click', function () {
+        PROGRESS.gold -= powerCost;
+        PROGRESS.upgrades = Object.assign({}, PROGRESS.upgrades || {});
+        PROGRESS.upgrades[id] = powerLevel + 1;
+        saveProgress();
+        Sound.coin();
+        buildArmory();
+      });
+    }
+    card.appendChild(powerBtn);
+    el.arrowGrid.appendChild(card);
+  });
+}
+
+function buildLevelGrid() {
+  el.levelGrid.innerHTML = '';
+  LEVELS.forEach(function (lv, i) {
+    var unlocked = levelUnlocked(i);
+    var card = document.createElement('div');
+    card.className = 'lvlCard' + (unlocked ? '' : ' locked') + (lv.boss ? ' boss' : '');
+    var st = PROGRESS.stars[i + 1] || 0;
+    var starStr = '';
+    for (var s = 0; s < 3; s++) starStr += (s < st ? '★' : '<span class="off">★</span>');
+    card.innerHTML =
+      '<div class="num">' + (i + 1) + (lv.boss ? ' <span style="font-size:12px">BOSS</span>' : '') + '</div>' +
+      '<div class="nm">' + lv.name + '</div>' +
+      '<div class="gold">+' + lv.gold + 'g</div>' +
+      '<div class="st">' + (st ? starStr : (unlocked ? '' : '<span style="opacity:.5">—</span>')) + '</div>' +
+      (unlocked ? '' : '<span class="lockIco">🔒</span>');
+    if (unlocked) card.addEventListener('click', function () { Sound.click(); startLevel(i); });
+    el.levelGrid.appendChild(card);
+  });
+}
+
+/* ================= INPUT ================= */
+function toWorld(cx, cy) {
+  var r = cv.getBoundingClientRect();
+  return { x: (cx - r.left) * (W / r.width), y: (cy - r.top) * (H / r.height) };
+}
+
+function updateAimFrom(px, py) {
+  aimX = px; aimY = py;
+  var dx = BOW.x - px, dy = BOW.y - py;
+  var len = Math.hypot(dx, dy);
+  aimPower = clamp(len / MAXPULL, 0, 1);
+  if (len > 8) { aimDX = dx / len; aimDY = dy / len; }
+}
+
+function isAuto() { return SETTINGS.shootStyle !== 'drag'; }
+
+/* Solve a launch velocity from the bow that passes through (tx, ty).
+   Low-arc solution; raises speed until the point is reachable.
+   Close targets (enemies at the wall) get a direct-fire shot. */
+function solveBallistic(tx, ty, speedMultiplier) {
+  speedMultiplier = speedMultiplier || 1;
+  var dx = tx - BOW.x;
+  if (dx < 6) { tx = BOW.x + 6; dx = 6; }
+  var g = GRAVITY;
+  if (dx < 188) {
+    var dist = Math.hypot(dx, ty - BOW.y);
+    var t = dist / (2063 * speedMultiplier);
+    var vx = dx / t;
+    var vy = (ty - BOW.y) / t - 0.5 * g * t;
+    return { vx: vx, vy: vy, v: Math.hypot(vx, vy) };
+  }
+  var dyUp = BOW.y - ty; // positive when target is above the bow (y-up math)
+  var v = 1950 * speedMultiplier;
+  for (var i = 0; i < 9; i++) {
+    var a = g * dx * dx / (2 * v * v);
+    var D = dx * dx - 4 * a * (dyUp + a);
+    if (D >= 0) {
+      var tan = (dx - Math.sqrt(D)) / (2 * a); // flatter trajectory
+      var inv = 1 / Math.sqrt(1 + tan * tan);
+      return { vx: v * inv, vy: -v * tan * inv, v: v };
+    }
+    v *= 1.28;
+  }
+  return null;
+}
+
+function autoFire(tx, ty) {
+  if (state !== 'playing' || shotCooldown > 0) return;
+  var ar = ARROWS[PROGRESS.equipped] || ARROWS.std;
+  var tunedArrow = getUpgradedArrow(ar.id, getArrowUpgradeLevel(ar.id));
+  var sol = ar.id === 'gatling' ? solveGatlingAim(tx, ty) : solveBallistic(tx, ty, tunedArrow.speed);
+  if (!sol) return;
+  aimX = tx; aimY = ty;
+  aimDX = sol.vx; aimDY = sol.vy;
+  aimPower = clamp(sol.v / 1875, 0.35, 1);
+  spawnVolley(ar, sol.vx, sol.vy, 0.85);
+  Sound.shoot();
+  recoil = 1;
+  shotCooldown = getUpgradedArrow(ar.id, getArrowUpgradeLevel(ar.id)).cadence || 0.42;
+}
+
+function solveGatlingAim(tx, ty) {
+  var dx = tx - BOW.x, dy = ty - BOW.y;
+  var gatling = getUpgradedArrow('gatling', getArrowUpgradeLevel('gatling'));
+  if (dx >= 0) return solveBallistic(tx, ty, gatling.speed);
+  var len = Math.hypot(dx, dy) || 1;
+  var speed = 2050 * gatling.speed;
+  return { vx: dx / len * speed, vy: dy / len * speed, v: speed };
+}
+
+function updateHover(px, py) {
+  if (state !== 'playing' || !isAuto()) return;
+  aimX = px; aimY = py;
+  var equipped = ARROWS[PROGRESS.equipped] || ARROWS.std;
+  lastSolve = equipped.id === 'gatling' ? solveGatlingAim(px, py) : solveBallistic(px, py, getUpgradedArrow(equipped.id, getArrowUpgradeLevel(equipped.id)).speed);
+  if (lastSolve) {
+    aimDX = lastSolve.vx; aimDY = lastSolve.vy;
+    aimPower = clamp(lastSolve.v / 1875, 0.35, 1);
+  }
+}
+
+cv.addEventListener('mousedown', function (e) {
+  Sound.resume();
+  if (state !== 'playing') return;
+  var p = toWorld(e.clientX, e.clientY);
+  if (PROGRESS.equipped === 'gatling') { fireHeld = true; hoverActive = true; updateHover(p.x, p.y); return; }
+  if (isAuto()) {
+    hoverActive = true;
+    autoFire(p.x, p.y);
+  } else {
+    aimActive = true;
+    updateAimFrom(p.x, p.y);
+  }
+});
+window.addEventListener('mousemove', function (e) {
+  var p = toWorld(e.clientX, e.clientY);
+  if (isAuto()) {
+    if (state === 'playing' && p.x >= 0 && p.x <= W && p.y >= 0 && p.y <= H) {
+      hoverActive = true;
+      updateHover(p.x, p.y);
+    }
+  } else if (aimActive) {
+    updateAimFrom(p.x, p.y);
+  }
+});
+cv.addEventListener('mouseleave', function () { hoverActive = false; lastSolve = null; fireHeld = false; });
+window.addEventListener('mouseup', function () {
+  fireHeld = false;
+  if (isAuto() || !aimActive) return;
+  if (aimPower > 0.1 && state === 'playing') fireArrow();
+  aimActive = false;
+});
+cv.addEventListener('touchstart', function (e) {
+  e.preventDefault();
+  Sound.resume();
+  if (state !== 'playing') return;
+  var t = e.touches[0];
+  var p = toWorld(t.clientX, t.clientY);
+  if (PROGRESS.equipped === 'gatling') { fireHeld = true; hoverActive = true; updateHover(p.x, p.y); return; }
+  if (isAuto()) {
+    autoFire(p.x, p.y);
+  } else {
+    aimActive = true;
+    updateAimFrom(p.x, p.y);
+  }
+}, { passive: false });
+window.addEventListener('touchmove', function (e) {
+  if (PROGRESS.equipped === 'gatling' && fireHeld) {
+    e.preventDefault();
+    var gatlingTouch = e.touches[0];
+    var gatlingPoint = toWorld(gatlingTouch.clientX, gatlingTouch.clientY);
+    updateHover(gatlingPoint.x, gatlingPoint.y);
+    return;
+  }
+  if (isAuto() || !aimActive) return;
+  e.preventDefault();
+  var t = e.touches[0];
+  var p = toWorld(t.clientX, t.clientY);
+  updateAimFrom(p.x, p.y);
+}, { passive: false });
+window.addEventListener('touchend', function () {
+  fireHeld = false;
+  if (isAuto() || !aimActive) return;
+  if (aimPower > 0.1 && state === 'playing') fireArrow();
+  aimActive = false;
+});
+window.addEventListener('touchcancel', function () { fireHeld = false; aimActive = false; });
+window.addEventListener('blur', function () { fireHeld = false; aimActive = false; });
+cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+window.addEventListener('keydown', function (e) {
+  if (e.key === 'p' || e.key === 'P') {
+    if (state === 'playing') pauseGame();
+    else if (state === 'paused') resumeGame();
+  } else if (e.key === 'Escape') {
+    if (state === 'playing') pauseGame();
+    else if (state === 'paused') resumeGame();
+    else if (state === 'settings' && settingsFrom === 'pause') { hideAllScreens(); show($('screen-pause')); state = 'paused'; }
+  } else if (state === 'playing') {
+    var keyMap = { '1': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5, '7': 6, '8': 7, '9': 8, '0': 9, '-': 10, '=': 11, '\\': 12, '[': 13, ']': 14, "'": 15, ';': 16, ',': 17 };
+    var idx = keyMap[e.key];
+    if (idx !== undefined) {
+      var id = ARROW_ORDER[idx];
+      if (id && PROGRESS.owned.indexOf(id) >= 0) equipArrow(id);
+    }
+  }
+});
+
+function pauseGame() {
+  if (state !== 'playing') return;
+  state = 'paused';
+  aimActive = false; fireHeld = false;
+  show($('screen-pause'));
+}
+function resumeGame() {
+  if (state !== 'paused') return;
+  hide($('screen-pause'));
+  state = 'playing';
+}
+
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden && state === 'playing') pauseGame();
+});
+
+/* ================= FIRING ================= */
+function spawnVolley(ar, vx, vy, power) {
+  var upgradeLevel = getArrowUpgradeLevel(ar.id);
+  ar = getUpgradedArrow(ar.id, upgradeLevel);
+  var len = Math.hypot(vx, vy) || 1;
+  var dx = vx / len, dy = vy / len;
+  function mk(angOff) {
+    var c = Math.cos(angOff), s = Math.sin(angOff);
+    var mvx = (dx * c - dy * s) * len;
+    var mvy = (dx * s + dy * c) * len;
+    arrows.push({
+      x: BOW.x + dx * 28, y: BOW.y + dy * 28, vx: mvx, vy: mvy,
+      rot: Math.atan2(mvy, mvx), type: ar.id, dmg: ar.dmg * getArrowPowerMultiplier(ar.id),
+      burn: ar.burn ? { dps: ar.burn.dps * getArrowPowerMultiplier(ar.id), dur: ar.burn.dur, interval: ar.burn.interval || 0.5 } : null, poison: !!ar.poison,
+      explode: ar.explode || null, pierceLeft: ar.pierce || 0, lastHitUid: -1,
+      slow: ar.slow || null, chain: ar.chain || null, cluster: ar.cluster || null,
+      holy: !!ar.holy, auto: !!ar.auto,
+      homing: !!ar.homing, lightning: ar.lightning || null, leech: ar.leech || 0,
+      sunder: ar.sunder || null, nova: ar.nova || null,
+      headshotBonus: ar.headshotBonus || 0, armorPierce: ar.armorPierce || 0,
+      poisonArmorBreak: ar.poisonArmorBreak || 0, splashBurn: ar.splashBurn || 0,
+      freezeChance: ar.freezeChance || 0, holyBossMultiplier: ar.holyBossMultiplier || 2,
+      leechRange: ar.leechRange || 0,
+      upgradeLevel: upgradeLevel,
+      power: power, dead: false
+    });
+    arrowsShot++;
+  }
+  if (ar.spread) {
+    var n = ar.spreadCount || 3;
+      var span = ar.spreadSpan || (n <= 3 ? 0.18 : 0.3);
+    if (n === 1) mk(0);
+    else for (var s = 0; s < n; s++) mk(((s / (n - 1)) - 0.5) * span);
+  }
+  else mk(0);
+}
+
+function fireArrow() {
+  var baseArrow = ARROWS[PROGRESS.equipped] || ARROWS.std;
+  var ar = getUpgradedArrow(baseArrow.id, getArrowUpgradeLevel(baseArrow.id));
+  var len = Math.hypot(aimDX, aimDY) || 1;
+  var dx = aimDX / len, dy = aimDY / len;
+  var speed = (671 + aimPower * 1375) * ar.speed;
+  spawnVolley(ar, dx * speed, dy * speed, aimPower);
+  Sound.shoot();
+  recoil = 1;
+  shotCooldown = ar.cadence || 0.42;
+}
+
+function explodeAt(x, y, a) {
+  Sound.explode();
+  if (SETTINGS.shake) shake = Math.min(16, shake + 11);
+  addText(x, y - 26, 'BOOM!', '#ffb35a', 20, 0.9);
+  if (a.explode.secondRing) {
+    var blastColor = getArrowUpgradePath(a.type).color;
+    particles.push({ kind: 'arcaneRing', x: x, y: y, r: a.explode.r * 0.35, vr: a.explode.r * 1.4,
+      life: 0.42, maxLife: 0.42, tint: blastColor });
+  }
+  for (var i = 0; i < 22; i++) {
+    var ang = Math.random() * Math.PI * 2;
+    var sp = 80 + Math.random() * 260;
+    particles.push({
+      kind: 'flame', x: x, y: y,
+      vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 60,
+      r: 3 + Math.random() * 5, life: 0.25 + Math.random() * 0.4
+    });
+  }
+  for (var i = 0; i < 10; i++) {
+    particles.push({
+      kind: 'smoke', x: x, y: y,
+      vx: (Math.random() - 0.5) * 90, vy: -30 - Math.random() * 70,
+      r: 6 + Math.random() * 8, life: 0.7 + Math.random() * 0.7
+    });
+  }
+  var r = a.explode.r, dmg = a.dmg * a.explode.mult;
+  for (var i = 0; i < enemies.length; i++) {
+    var e = enemies[i];
+    if (e.state === 'dying') continue;
+    var d = Math.hypot(e.x + e.w / 2 - x, GROUND - e.h * 0.5 - y);
+    if (d > r) continue;
+    var fall = 1 - d / r;
+    damageEnemy(e, dmg * (0.45 + 0.55 * fall), {});
+    spawnBlood(e.x + e.w / 2, GROUND - e.h * 0.5, 8);
+  }
+  // splash damages the enemy keep
+  if (keep && !keep.destroyed) {
+    var kcx = clamp(x, KEEP_BOX.x, KEEP_BOX.x + KEEP_BOX.w);
+    var kcy = clamp(y, KEEP_BOX.top, GROUND);
+    var kd = Math.hypot(x - kcx, y - kcy);
+    if (kd < r) damageKeep(dmg * (0.4 + 0.6 * (1 - kd / r)), kcx, kcy);
+  }
+}
+
+/* ================= DAMAGE / BLOOD ================= */
+function addText(x, y, txt, color, size, life) {
+  if (texts.length > 44) texts.shift();
+  texts.push({ x: x, y: y, txt: txt, color: color, size: size || 15, life: life || 0.9, max: life || 0.9, vy: -46 });
+}
+
+function spawnBlood(x, y, n) {
+  var b = SETTINGS.blood;
+  if (b <= 0) return;
+  n = Math.max(1, Math.round(n * (0.45 + b * 0.5)));
+  for (var i = 0; i < n; i++) {
+    var a = -Math.PI * (0.15 + Math.random() * 0.7);
+    var sp = 70 + Math.random() * (110 + b * 55);
+    particles.push({
+      kind: 'blood', x: x, y: y,
+      vx: Math.cos(a) * sp + 45, vy: Math.sin(a) * sp,
+      r: 1.6 + Math.random() * (1 + b * 0.8),
+      life: 0.5 + Math.random() * 0.7
+    });
+  }
+}
+
+function spawnSparks(x, y) {
+  for (var i = 0; i < 7; i++) {
+    var a = Math.random() * Math.PI * 2;
+    var sp = 120 + Math.random() * 160;
+    particles.push({ kind: 'spark', x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 60, r: 1.2 + Math.random(), life: 0.18 + Math.random() * 0.2 });
+  }
+}
+
+function arcaneColor(type) {
+  return ({
+    chain: '#78e8ff', holy: '#ffe47a', glacial: '#9fe9ff',
+    leech: '#ff62c7', sunder: '#ffad62',
+    lightning: '#82e8ff', homing: '#70f5d2', cluster: '#d29aff', gatling: '#fff078'
+  })[type] || '';
+}
+
+function spawnLightningStrike(x, y) {
+  var points = [{ x: x + (Math.random() - 0.5) * 34, y: 0 }];
+  var segments = 9;
+  for (var i = 1; i < segments; i++) {
+    points.push({ x: x + (Math.random() - 0.5) * 70, y: y * i / segments });
+  }
+  points.push({ x: x, y: y });
+  particles.push({ kind: 'lightning', points: points, life: 0.22, maxLife: 0.22 });
+}
+
+function spawnArcaneBurst(x, y, type) {
+  var color = arcaneColor(type);
+  if (!color) return;
+  particles.push({ kind: 'arcaneRing', x: x, y: y, r: 7, vr: type === 'glacial' ? 260 : 190, life: 0.34, maxLife: 0.34, tint: color });
+  var count = type === 'glacial' ? 18 : 12;
+  for (var i = 0; i < count; i++) {
+    var ang = Math.random() * Math.PI * 2;
+    var speed = 65 + Math.random() * (type === 'holy' ? 230 : 190);
+    particles.push({
+      kind: 'arcane', x: x, y: y,
+      vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed - 35,
+      r: 2 + Math.random() * 3, rot: ang, spin: (Math.random() - 0.5) * 9,
+      life: 0.28 + Math.random() * 0.38, maxLife: 0.66, tint: color
+    });
+  }
+}
+
+function spawnUpgradeImpact(x, y, type, level) {
+  if (!level) return;
+  var path = getArrowUpgradePath(type);
+  var life = 0.32 + level * 0.035;
+  particles.push({ kind: 'arcaneRing', x: x, y: y, r: 5 + level * 2, vr: 145 + level * 35,
+    life: life, maxLife: life, tint: path.color });
+  for (var i = 0; i < 2 + level * 2; i++) {
+    var ang = Math.random() * Math.PI * 2;
+    var speed = 65 + Math.random() * (90 + level * 28);
+    particles.push({ kind: 'arcane', x: x, y: y, vx: Math.cos(ang) * speed,
+      vy: Math.sin(ang) * speed - 28, r: 2 + level * 0.35, rot: ang,
+      spin: (Math.random() - 0.5) * (8 + level), life: 0.3 + Math.random() * 0.35,
+      maxLife: 0.65, tint: path.color });
+  }
+}
+
+function spawnFlame(x, y, kind) {
+  particles.push({
+    kind: 'flame', x: x + (Math.random() - 0.5) * 22, y: y - Math.random() * 30,
+    vx: (Math.random() - 0.5) * 30, vy: -50 - Math.random() * 60,
+    r: 2.5 + Math.random() * 3.5, life: 0.3 + Math.random() * 0.35,
+    tint: kind === 'poison' ? 'poison' : 'fire'
+  });
+}
+
+function addBloodDecal(x, y, big) {
+  if (SETTINGS.blood <= 0) return;
+  var n = 3 + Math.floor(Math.random() * 5) + (big ? 4 : 0) + SETTINGS.blood;
+  var splat = [];
+  for (var i = 0; i < n; i++) {
+    var a = Math.random() * Math.PI * 2;
+    var d = Math.random() * (big ? 34 : 14);
+    splat.push({ dx: Math.cos(a) * d, dy: Math.sin(a) * d * 0.35, r: 1 + Math.random() * (big ? 4 : 2.4) });
+  }
+  decals.push({
+    kind: 'blood', x: x, y: y,
+    rx: (big ? 14 + Math.random() * 10 : 4 + Math.random() * 4),
+    ry: (big ? 4.5 + Math.random() * 2.5 : 1.6),
+    splat: splat,
+    life: 9 + SETTINGS.blood * 5
+  });
+  if (decals.length > 90) decals.splice(0, decals.length - 90);
+}
+
+function damageEnemy(e, dmg, opts) {
+  if (e.state === 'dying') return;
+  opts = opts || {};
+  e.hp -= dmg;
+  score += Math.round(dmg);
+  if (e.hp <= 0) killEnemy(e, opts.head, opts.arrow);
+}
+
+function killEnemy(e, head, arrow) {
+  e.state = 'dying';
+  e.deathT = 0;
+  e.deathRot = 0;
+  e.alpha = 1;
+  e.burn = 0;
+  kills++;
+  Leaderboard.recordKill(Player.current || 'Guest');
+  score += e.def.score + (head ? 40 : 0);
+  runGold += e.def.gold;
+  if (arrow) {
+    e.stuckArrow = {
+      dx: arrow.x - (e.x + e.w / 2), dy: arrow.y - GROUND, rot: arrow.rot,
+      fletch: arrowFletchColor(arrow.type)
+    };
+  }
+  addText(e.x + e.w / 2, GROUND - e.h - 22, '+' + e.def.gold + 'g', '#e8c15a', 14, 1);
+  Sound.death();
+  var bx = e.x + e.w / 2;
+  if (SETTINGS.blood > 0) {
+    spawnBlood(bx, GROUND - e.h * 0.6, 14 + SETTINGS.blood * 9);
+    addBloodDecal(bx, GROUND + 3 + Math.random() * 8, !!e.def.boss);
+    if (SETTINGS.blood >= 3) {
+      for (var i = 0; i < 6; i++) spawnBlood(bx + (Math.random() - 0.5) * e.w, GROUND - Math.random() * e.h, 4);
+    }
+  }
+  if (e.def.boss) {
+    shake = SETTINGS.shake ? 16 : 0;
+    toast('The ' + e.def.name + ' has fallen!');
+  }
+}
+
+function castleHit(dmg) {
+  if (state !== 'playing') return;
+  castleHP -= dmg;
+  castleFlash = 1;
+  if (SETTINGS.shake) shake = Math.min(14, shake + 7);
+  Sound.buildHit();
+  addText(WALL_W + 30 + Math.random() * 40, WALL_TOP + 40 + Math.random() * 60, '-' + Math.round(dmg), '#ff8a6a', 16, 0.9);
+  if (castleHP <= 0) { castleHP = 0; loseLevel(); }
+}
+
+function damageKeep(dmg, hx, hy) {
+  if (!keep || keep.destroyed || state !== 'playing') return;
+  keep.hp -= dmg;
+  keep.flash = 1;
+  score += Math.round(dmg);
+  // coin trickle for chip damage on the enemy castle
+  var coins = Math.max(1, Math.round(dmg * 0.35));
+  runGold += coins;
+  if (SETTINGS.shake) shake = Math.min(10, shake + 4);
+  if (SETTINGS.dmgNums) {
+    addText(hx, hy - 16, Math.round(dmg), '#ffb35a', 14, 0.7);
+    addText(hx + 12, hy - 32, '+' + coins + 'g', '#e8c15a', 12, 0.8);
+  }
+  if (keep.hp <= 0) destroyKeep();
+}
+
+function destroyKeep() {
+  if (!keep || keep.destroyed) return;
+  keep.hp = 0;
+  keep.destroyed = true;
+  keep.stuck.length = 0;
+  Sound.explode();
+  if (SETTINGS.shake) shake = 16;
+    toast('The enemy castle has fallen!');
+  addText(KEEP_BOX.x + KEEP_BOX.w / 2, KEEP_BOX.top - 70, 'CASTLE DESTROYED!', '#ffd25a', 22, 1.4);
+  runGold += 75 + levelIdx * 15;
+  score += 350;
+  var kx = KEEP_BOX.x + KEEP_BOX.w / 2, ky = KEEP_BOX.top + 90;
+  for (var i = 0; i < 30; i++) {
+    var ang = Math.random() * Math.PI * 2;
+    var sp = 90 + Math.random() * 300;
+    particles.push({
+      kind: 'flame', x: kx, y: ky,
+      vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 80,
+      r: 4 + Math.random() * 6, life: 0.3 + Math.random() * 0.5
+    });
+  }
+  for (var i = 0; i < 16; i++) {
+    particles.push({
+      kind: 'smoke', x: KEEP_BOX.x + 20 + Math.random() * (KEEP_BOX.w - 40),
+      y: KEEP_BOX.top + Math.random() * 120,
+      vx: (Math.random() - 0.5) * 110, vy: -40 - Math.random() * 90,
+      r: 8 + Math.random() * 10, life: 1 + Math.random() * 1.2
+    });
+  }
+}
+
+/* ================= SPAWNING ================= */
+function spawnEnemy(type) {
+  var def = ENEMIES[type];
+  if (!def) return;
+  var d = diff();
+  var EASE_HP = 0.7, EASE_DMG = 0.7, EASE_SPD = 0.55;
+  var hpMul = level.hpMul * d.hp * EASE_HP;
+  var spdMul = level.spdMul * d.spd * EASE_SPD;
+  var maxHp = def.hp * hpMul;
+  enemies.push({
+    type: type, def: def,
+    x: KEEP_BOX.gateX - 14 + Math.random() * 40,
+    y: GROUND, w: def.w, h: def.h,
+    hp: maxHp, maxHp: maxHp,
+    speed: def.speed * spdMul * 1.25,
+    dmg: def.dmg * d.dmg * EASE_DMG,
+    state: 'walk',
+    walkT: Math.random() * 6.28,
+    t: 0,
+    attackTimer: 1.1, didHit: false, attackT: 0,
+    shotTimer: 1.2 + Math.random() * 1.5, shotAnim: 0,
+    healTimer: def.healer ? 0.9 : 0,
+    burn: 0, burnDps: 0, burnTick: 0, burnInterval: 0.5,
+    slow: 0, slowFactor: 1, sunder: 0, sunderMult: 1,
+    armorWeak: 0, armorWeakTimer: 0,
+    deathT: 0, deathRot: 0, alpha: 1,
+    stopX: def.ranged ? 969 + Math.random() * 500 : 0,
+    uid: ++uidSeq, burnKind: 'fire'
+  });
+  if (def.boss) { Sound.boss(); toast('The ' + def.name + ' approaches!'); }
+  else Sound.spawn();
+}
+
+function fireBolt(e) {
+  var bx = e.x + 6, by = GROUND - e.h * 0.62;
+  bolts.push({ x: bx, y: by, vx: -675, vy: -38, rot: Math.atan2(-38, -675), dmg: e.dmg, dead: false });
+  Sound.bolt();
+  e.shotAnim = 0.25;
+}
+
+/* ================= UPDATE ================= */
+function step(dt) {
+  ambT += dt;
+  recoil = Math.max(0, recoil - dt * 6);
+  shake = Math.max(0, shake - dt * 28);
+  castleFlash = Math.max(0, castleFlash - dt * 3);
+  if (keep) keep.flash = Math.max(0, keep.flash - dt * 3);
+  shotCooldown = Math.max(0, shotCooldown - dt);
+  if (state === 'playing') update(dt);
+}
+
+function update(dt) {
+  elapsed += dt * 1000;
+  // storm lightning
+  if (level.theme === 'storm') {
+    lightFlash = Math.max(0, lightFlash - dt * 4.5);
+    stormFlashTimer -= dt;
+    if (stormFlashTimer <= 0) {
+      lightFlash = 1;
+      stormFlashTimer = 18 + Math.random() * 18;
+    }
+  }
+
+  // spawns
+  while (qi < spawnQ.length && elapsed >= spawnQ[qi].t) {
+    spawnEnemy(spawnQ[qi].type);
+    qi++;
+  }
+
+  // wave toast
+  var cw = currentWaveNum();
+  if (cw !== lastWaveShown && qi < spawnQ.length) {
+    lastWaveShown = cw;
+    var waveInfo = waves[cw - 1];
+    if (waveInfo && waveInfo.elite) {
+      var eliteSpawn = spawnQ[waveInfo.startIdx];
+      toast('Elite wave — ' + (ENEMIES[eliteSpawn.type] || {}).name + ' incoming!');
+    } else {
+      toast('Wave ' + cw + ' of ' + waves.length);
+    }
+  }
+
+  updateArrows(dt);
+  updateBolts(dt);
+  updateEnemies(dt);
+  updateParticles(dt);
+  updateTexts(dt);
+  updateDecals(dt);
+
+  // Gatling sends one cursor-aimed bolt per cadence while the cursor button is held.
+  var eq = PROGRESS.equipped;
+  var arEq = ARROWS[eq] || ARROWS.std;
+  if (state === 'playing' && arEq.auto && fireHeld && shotCooldown <= 0) {
+    autoFire(aimX, aimY);
+  }
+
+  // castle smoke when badly damaged
+  if (castleHP / castleMax < 0.3) {
+    smokeT -= dt;
+    if (smokeT <= 0) {
+      smokeT = 0.32;
+      particles.push({
+        kind: 'smoke', x: 30 + Math.random() * (WALL_W - 30), y: WALL_TOP - 10 - Math.random() * 20,
+        vx: 8 + Math.random() * 14, vy: -26 - Math.random() * 18,
+        r: 5 + Math.random() * 7, life: 1.2 + Math.random()
+      });
+    }
+  }
+
+  // keep smoke when badly damaged
+  if (keep && !keep.destroyed && keep.hp / keep.maxHp < 0.3) {
+    keepSmokeT -= dt;
+    if (keepSmokeT <= 0) {
+      keepSmokeT = 0.35;
+      particles.push({
+        kind: 'smoke', x: KEEP_BOX.x + 30 + Math.random() * (KEEP_BOX.w - 60), y: KEEP_BOX.top - 8 - Math.random() * 44,
+        vx: 10 + Math.random() * 16, vy: -30 - Math.random() * 20,
+        r: 6 + Math.random() * 8, life: 1.3 + Math.random()
+      });
+    }
+  }
+
+  // win check: wipe the wave AND raze the keep
+  if (state === 'playing' && qi >= spawnQ.length && enemies.length === 0) {
+    if (keep && !keep.destroyed) {
+      keep.nagT -= dt;
+      if (keep.nagT <= 0) { keep.nagT = 8; toast('Destroy the enemy castle!'); }
+    } else {
+      winLevel();
+    }
+  }
+}
+
+function updateArrows(dt) {
+  for (var i = arrows.length - 1; i >= 0; i--) {
+    var a = arrows[i];
+    a.vy += GRAVITY * dt;
+    a.x += a.vx * dt;
+    a.y += a.vy * dt;
+    a.rot = Math.atan2(a.vy, a.vx);
+
+    // hunter arrow bends toward the nearest living foe
+    if (a.homing) {
+      var tgt = null, hDist = 1e9;
+      for (var h = 0; h < enemies.length; h++) {
+        var eh = enemies[h];
+        if (eh.state === 'dying') continue;
+        var hd = Math.hypot(eh.x + eh.w / 2 - a.x, (GROUND - eh.h * 0.5) - a.y);
+        if (hd < hDist) { hDist = hd; tgt = eh; }
+      }
+      if (tgt && hDist < 1500) {
+        var want = Math.atan2((GROUND - tgt.h * 0.5) - a.y, (tgt.x + tgt.w / 2) - a.x);
+        var cur = Math.atan2(a.vy, a.vx);
+        var dAng = want - cur;
+        while (dAng > Math.PI) dAng -= Math.PI * 2;
+        while (dAng < -Math.PI) dAng += Math.PI * 2;
+        var turn = clamp(dAng, -7 * dt, 7 * dt);
+        var hspd = Math.hypot(a.vx, a.vy);
+        var na = cur + turn;
+        a.vx = Math.cos(na) * hspd;
+        a.vy = Math.sin(na) * hspd;
+        a.rot = na;
+      }
+    }
+
+    // cluster bolt splits mid-flight into a cone of darts
+    if (a.cluster && !a.split) {
+      a.splitT = (a.splitT || 0) + dt;
+      if (a.splitT > 0.28) {
+        var cl = a.cluster;
+        var baseAng = Math.atan2(a.vy, a.vx);
+        var spd = Math.hypot(a.vx, a.vy) || cl.speed;
+        for (var c = 0; c < cl.count; c++) {
+          var off = ((c / (cl.count - 1 || 1)) - 0.5) * cl.spread;
+          var ang = baseAng + off;
+          arrows.push({
+            x: a.x, y: a.y,
+            vx: Math.cos(ang) * spd * 0.85, vy: Math.sin(ang) * spd * 0.85,
+            rot: ang, type: a.type, dmg: a.dmg * (cl.damageMult || 0.55),
+            burn: null, poison: false, explode: null, pierceLeft: 0, lastHitUid: -1,
+            slow: null, chain: null, cluster: null, holy: a.holy,
+            power: a.power, upgradeLevel: a.upgradeLevel, dead: false, split: true
+          });
+        }
+        addText(a.x, a.y - 12, 'SPLIT!', '#d0d0d0', 13, 0.7);
+        arrows.splice(i, 1);
+        continue;
+      }
+    }
+
+    // enemy hits
+    var consumed = false;
+    for (var j = 0; j < enemies.length; j++) {
+      var e = enemies[j];
+      if (e.state === 'dying') continue;
+      if (e.uid === a.lastHitUid) continue;
+      if (a.x < e.x - 6 || a.x > e.x + e.w + 6) continue;
+      if (a.y < GROUND - e.h - 4 || a.y > GROUND + 2) continue;
+
+      var head = a.y < GROUND - e.h * 0.82;
+      var dmg = a.dmg * (0.5 + 0.5 * a.power);
+
+      if (e.def.armor && !a.holy) dmg *= Math.max(0.12, e.def.armor - (e.armorWeak || 0) - (a.armorPierce || 0));
+
+      if (e.def.shield && a.x < e.x + e.w * 0.45) {
+        if (Math.random() < 0.45) {
+          spawnSparks(a.x, a.y);
+          Sound.block();
+          addText(a.x, a.y - 10, 'BLOCKED', '#b9c4d4', 13, 0.7);
+          consumed = true;
+          break;
+        }
+        dmg *= 0.6;
+      }
+
+      if (head) {
+        dmg *= 2.4 + (a.headshotBonus || 0);
+        Sound.headshot();
+        addText(a.x, a.y - 14, 'HEADSHOT!', '#ffd25a', 18, 1);
+      } else {
+        Sound.hit();
+      }
+
+      // holy bolts shred bosses
+      if (a.holy && e.def.boss) {
+        dmg *= a.holyBossMultiplier || 2;
+        addText(a.x, a.y - 26, 'SMITE!', '#fff3c4', 16, 1);
+      }
+
+      spawnBlood(a.x, a.y, head ? 12 : 7);
+      if (SETTINGS.dmgNums) addText(a.x + 6, a.y - 6, Math.round(dmg) + (head ? '!' : ''), head ? '#ffd25a' : '#f0f0f0', head ? 16 : 13, 0.7);
+
+      if (a.burn && e.state !== 'dying') {
+        e.burn = a.burn.dur;
+        e.burnDps = a.burn.dps;
+        e.burnInterval = a.burn.interval || 0.5;
+        e.burnTick = Math.min(0.4, e.burnInterval);
+        e.burnKind = a.poison ? 'poison' : 'fire';
+      }
+      if (a.poisonArmorBreak && e.state !== 'dying') {
+        e.armorWeak = Math.max(e.armorWeak || 0, a.poisonArmorBreak);
+        e.armorWeakTimer = 3 + a.upgradeLevel * 0.35;
+        addText(a.x, a.y - 30, 'VENOM BREAK', '#a8f542', 12, 0.7);
+      }
+      if (a.poison && a.upgradeLevel >= 4) {
+        var plagueTarget = null, plagueDist = 160;
+        for (var pi = 0; pi < enemies.length; pi++) {
+          var plague = enemies[pi];
+          if (plague === e || plague.state === 'dying') continue;
+          var pd = Math.hypot(plague.x + plague.w / 2 - (e.x + e.w / 2), plague.h - e.h);
+          if (pd < plagueDist) { plagueDist = pd; plagueTarget = plague; }
+        }
+        if (plagueTarget) {
+          plagueTarget.burn = Math.max(plagueTarget.burn, a.burn.dur * 0.65);
+          plagueTarget.burnDps = Math.max(plagueTarget.burnDps, a.burn.dps * 0.6);
+          plagueTarget.burnInterval = a.burn.interval;
+          plagueTarget.burnTick = a.burn.interval;
+          plagueTarget.burnKind = 'poison';
+          plagueTarget.armorWeak = Math.max(plagueTarget.armorWeak || 0, a.poisonArmorBreak);
+          plagueTarget.armorWeakTimer = 3 + a.upgradeLevel * 0.35;
+          addText(plagueTarget.x + plagueTarget.w / 2, GROUND - plagueTarget.h - 18, 'PLAGUE!', '#a8f542', 13, 0.8);
+        }
+      }
+      if (a.type === 'fire' && a.upgradeLevel >= 4 && a.burn) {
+        var wildCount = 0;
+        for (var wi = 0; wi < enemies.length; wi++) {
+          var wild = enemies[wi];
+          if (wild === e || wild.state === 'dying' || wild.burn > 0) continue;
+          if (Math.hypot(wild.x + wild.w / 2 - (e.x + e.w / 2), wild.h - e.h) > 135) continue;
+          wild.burn = a.burn.dur * 0.7;
+          wild.burnDps = a.burn.dps * 0.55;
+          wild.burnTick = 0.35;
+          wild.burnInterval = 0.35;
+          wild.burnKind = 'fire';
+          spawnFlame(wild.x + wild.w / 2, GROUND - wild.h * 0.55, 'fire');
+          wildCount++;
+        }
+        if (wildCount) addText(e.x + e.w / 2, GROUND - e.h - 35, 'WILDFIRE!', '#ff7a38', 14, 0.8);
+      }
+
+      // frost chill
+      if (a.slow && e.state !== 'dying') {
+        e.slow = Math.max(e.slow, a.slow.dur);
+        e.slowFactor = a.slow.factor;
+        addText(a.x, a.y - 20, 'CHILLED', '#9fd8ff', 13, 0.8);
+        if (a.freezeChance && Math.random() < a.freezeChance) {
+          e.slow = Math.max(e.slow, 1.1);
+          e.slowFactor = 0;
+          addText(a.x, a.y - 40, 'FROZEN!', '#bff4ff', 14, 0.8);
+        }
+        if (a.slow.splashRadius) {
+          for (var fs = 0; fs < enemies.length; fs++) {
+            var frostTarget = enemies[fs];
+            if (frostTarget === e || frostTarget.state === 'dying') continue;
+            var frostDist = Math.hypot(frostTarget.x + frostTarget.w / 2 - (e.x + e.w / 2), frostTarget.h - e.h);
+            if (frostDist > a.slow.splashRadius) continue;
+            frostTarget.slow = Math.max(frostTarget.slow, a.slow.dur * 0.65);
+            frostTarget.slowFactor = Math.min(frostTarget.slowFactor || 1, a.slow.factor);
+            particles.push({ kind: 'arcaneRing', x: frostTarget.x + frostTarget.w / 2, y: GROUND - frostTarget.h * 0.5,
+              r: 4, vr: 100, life: 0.28, maxLife: 0.28, tint: getArrowUpgradePath('frost').color });
           }
         }
       }
@@ -909,7 +1732,7 @@ function updateHUD() {
   }
   el.scoreVal.textContent = score;
   el.roundVal.textContent = levelIdx + 1;
-  el.goldVal.textContent = (PROGRESS.gold || 0) + runGold;
+  el.goldVal.textContent = runGold;
   var alive = enemies.length;
   var pending = spawnQ.length - qi;
   el.waveInfo.textContent = 'Wave ' + currentWaveNum() + '/' + waves.length +
