@@ -4,11 +4,14 @@
 
 Castle Rangers is a browser-based castle-defense game. Aim and fire magical arrows, earn coins, upgrade your armory, and defend your keep through 300 rounds. Player profiles keep progress between updates, and the global leaderboard tracks scores, levels, arrows fired, cumulative kills, and active playtime.
 
-### Latest update — V28
+### Latest update — V29
 
-- Raises all arrow prices by 30% over V27. Late-game arrows (unlock Round 20 and later) cost an additional 50% over that increase. The starting Standard arrow stays free; power upgrade prices are unchanged.
+- Gatling Launcher fires a single arrow automatically at a faster cadence while held, and cursor aiming now tracks the target—including close targets near the castle.
+- Gives Gatling bolts a bright cyan glow and luminous arrow graphics.
 
 ## Previous updates
+
+- **V28 — Higher tier arrow prices:** Raises all arrow prices by 30% over V27 and adds a 50% surcharge for arrows unlocking at Round 20 or later.
 
 - **V27 — Arrow prices:** Raises arrow purchase prices by about 21% over V26 while leaving power upgrade prices unchanged.
 
