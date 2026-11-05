@@ -279,6 +279,7 @@ canvas#game {
   padding: 12px 14px;
   max-height: 60vh;
   overflow-y: auto;
+  isolation: isolate;
 }
 .hsNote { font-size: 12px; opacity: .8; margin-bottom: 10px; font-style: italic; }
 .hsEmpty { text-align: center; opacity: .7; padding: 26px 0; font-style: italic; }
@@ -299,7 +300,11 @@ canvas#game {
   font-size: 11px;
   letter-spacing: 1px;
   text-transform: uppercase;
-  position: sticky; top: 0;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #302315;
+  box-shadow: 0 2px 5px rgba(0,0,0,.75);
 }
 .hsRow.hsMine { background: rgba(232,193,90,.16); border: 1px solid var(--gold-dim); }
 .hsRank { color: var(--gold); font-weight: bold; }
