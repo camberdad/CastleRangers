@@ -90,6 +90,8 @@ function migrateLightningArrow(progress) {
 var DEFAULT_PROGRESS = {
   unlocked: 1,              // highest playable level (1-based)
   gold: 0,
+  totalScore: 0,            // cumulative score across every finished level attempt
+  highestLevel: 0,          // highest level successfully completed
   stars: {},                // { levelIndex(1-based): 0-3 }
   best: {},                 // { levelIndex: best score }
   owned: ['std'],
@@ -97,11 +99,21 @@ var DEFAULT_PROGRESS = {
   upgrades: {}
 };
 
-var PROGRESS = Object.assign({}, DEFAULT_PROGRESS, readPersistentSave('cr_progress', 'cr_progress_backup', validProgressSave, {}));
+function sumBestScores(best) {
+  return Object.keys(best || {}).reduce(function (total, key) {
+    return total + Math.max(0, Math.floor(Number(best[key]) || 0));
+  }, 0);
+}
+
+var savedProgress = readPersistentSave('cr_progress', 'cr_progress_backup', validProgressSave, {});
+var PROGRESS = Object.assign({}, DEFAULT_PROGRESS, savedProgress);
+if (!Object.prototype.hasOwnProperty.call(savedProgress, 'totalScore')) PROGRESS.totalScore = sumBestScores(PROGRESS.best);
 if (!Array.isArray(PROGRESS.owned) || PROGRESS.owned.indexOf('std') < 0) PROGRESS.owned = ['std'];
 if (!PROGRESS.upgrades || typeof PROGRESS.upgrades !== 'object') PROGRESS.upgrades = {};
 if (!PROGRESS.equipped || PROGRESS.owned.indexOf(PROGRESS.equipped) < 0) PROGRESS.equipped = 'std';
 if (typeof PROGRESS.unlocked !== 'number' || PROGRESS.unlocked < 1) PROGRESS.unlocked = 1;
+if (!isFinite(Number(PROGRESS.totalScore)) || Number(PROGRESS.totalScore) < 0) PROGRESS.totalScore = 0;
+if (!isFinite(Number(PROGRESS.highestLevel)) || Number(PROGRESS.highestLevel) < 0) PROGRESS.highestLevel = 0;
 migrateRemovedArrow(PROGRESS);
 migrateLightningArrow(PROGRESS);
 
@@ -127,11 +139,15 @@ var Player = {
   load(name) {
     if (!this.db.list[name]) return false;
     this.current = name;
-    PROGRESS = Object.assign({}, DEFAULT_PROGRESS, JSON.parse(JSON.stringify(this.db.list[name])));
+    var loadedProgress = JSON.parse(JSON.stringify(this.db.list[name]));
+    PROGRESS = Object.assign({}, DEFAULT_PROGRESS, loadedProgress);
+    if (!Object.prototype.hasOwnProperty.call(loadedProgress, 'totalScore')) PROGRESS.totalScore = sumBestScores(PROGRESS.best);
     if (!Array.isArray(PROGRESS.owned) || PROGRESS.owned.indexOf('std') < 0) PROGRESS.owned = ['std'];
     if (!PROGRESS.upgrades || typeof PROGRESS.upgrades !== 'object') PROGRESS.upgrades = {};
     if (!PROGRESS.equipped || PROGRESS.owned.indexOf(PROGRESS.equipped) < 0) PROGRESS.equipped = 'std';
     if (typeof PROGRESS.unlocked !== 'number' || PROGRESS.unlocked < 1) PROGRESS.unlocked = 1;
+    if (!isFinite(Number(PROGRESS.totalScore)) || Number(PROGRESS.totalScore) < 0) PROGRESS.totalScore = 0;
+    if (!isFinite(Number(PROGRESS.highestLevel)) || Number(PROGRESS.highestLevel) < 0) PROGRESS.highestLevel = 0;
     migrateRemovedArrow(PROGRESS);
     migrateLightningArrow(PROGRESS);
     this.db.last = name;
