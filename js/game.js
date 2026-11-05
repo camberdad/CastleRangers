@@ -266,6 +266,7 @@ function winLevel() {
   var L = levelIdx + 1;
   PROGRESS.stars[L] = Math.max(PROGRESS.stars[L] || 0, stars);
   PROGRESS.best[L] = Math.max(PROGRESS.best[L] || 0, score);
+  PROGRESS.highestLevel = Math.max(Number(PROGRESS.highestLevel) || 0, L);
   if (levelIdx + 2 <= totalLevels()) PROGRESS.unlocked = Math.max(PROGRESS.unlocked, levelIdx + 2);
   saveProgress();
   hide(el.hud);
@@ -305,11 +306,14 @@ function loseLevel() {
 function submitScore(won, stars) {
   if (typeof Leaderboard === 'undefined') return;
   var p = PROGRESS || {};
+  p.totalScore = Math.max(0, Number(p.totalScore) || 0) + Math.max(0, Number(score) || 0);
+  if (won) p.highestLevel = Math.max(Number(p.highestLevel) || 0, levelIdx + 1);
+  saveProgress();
   var entry = {
     name: Player.current || 'Guest',
-    score: score,
+    score: p.totalScore,
     gold: (p.gold || 0),
-    level: Math.max(levelIdx + 1, Math.max(1, (Number(p.unlocked) || 1) - 1)),
+    level: Math.max(1, Number(p.highestLevel) || 0),
     levelsCompleted: countCompletedLevels(p),
     stars: stars || 0,
     kills: Leaderboard.getTotalKills(Player.current || 'Guest'),
