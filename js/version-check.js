@@ -1,5 +1,5 @@
 (function () {
-  var CURRENT_VERSION = '37';
+  var CURRENT_VERSION = '38';
   var latestVersion = '';
   var checkInProgress = false;
   var applyingUpdate = false;

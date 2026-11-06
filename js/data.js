@@ -227,9 +227,9 @@ var ARROWS = {
     desc: 'Radiant bolt pierces one foe, ignores armor, and smites bosses.'
   },
   gatling: {
-    id: 'gatling', name: 'Gatling Launcher', icon: '╳', dmg: 9, cost: 4800, unlock: 75, speed: 1.0, cadence: 0.12,
-    auto: true,
-    desc: 'Hold and aim with the cursor to unleash a rapid stream of single, brilliant bolts.'
+    id: 'gatling', name: 'Gatling Launcher', icon: '╳', dmg: 32, cost: 4800, unlock: 75, speed: 1.45, cadence: 0.06,
+    auto: true, pierce: 2,
+    desc: 'Hold to unleash a straight laser stream of arrows. Punches through armor, shields and three enemies; deals 80% extra damage to bosses and 60% extra damage to castles.'
   },
   fan: {
     id: 'fan', name: 'Fan Volley', icon: '❖', dmg: 24, cost: 850, unlock: 12, speed: 1, cadence: 0.78,

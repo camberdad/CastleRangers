@@ -1265,11 +1265,67 @@ function drawUpgradeSigil(ctx, motif, x, y, size) {
   if (motif === 'diamond' || motif === 'drop' || motif === 'crystal') ctx.fill();
 }
 
+function drawGatlingLaser(ctx, a) {
+  var n = a.upgradeLevel || 0;
+  var length = 190 + n * 18;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  var trail = ctx.createLinearGradient(-length, 0, 12, 0);
+  trail.addColorStop(0, 'rgba(31,132,255,0)');
+  trail.addColorStop(0.4, 'rgba(27,202,255,.24)');
+  trail.addColorStop(1, 'rgba(135,255,255,.95)');
+  ctx.strokeStyle = trail;
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 8 + n * 1.1;
+  ctx.beginPath(); ctx.moveTo(-length, 0); ctx.lineTo(9, 0); ctx.stroke();
+  ctx.strokeStyle = '#55edff';
+  ctx.shadowColor = '#29caff'; ctx.shadowBlur = 16 + n * 2;
+  ctx.lineWidth = 3 + n * 0.25;
+  ctx.beginPath(); ctx.moveTo(-length * .72, 0); ctx.lineTo(12, 0); ctx.stroke();
+  ctx.shadowBlur = 0; ctx.strokeStyle = '#f3ffff'; ctx.lineWidth = 1.8 + n * .16;
+  ctx.beginPath(); ctx.moveTo(-65 - n * 6, 0); ctx.lineTo(14, 0); ctx.stroke();
+  if (n >= 2) {
+    ctx.strokeStyle = n >= 4 ? '#c088ff' : '#45bfff'; ctx.lineWidth = 1.3;
+    for (var side = -1; side <= 1; side += 2) {
+      ctx.beginPath(); ctx.moveTo(-length * .64, side * (3 + n));
+      ctx.lineTo(-18, side * 3); ctx.lineTo(7, 0); ctx.stroke();
+    }
+  }
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.moveTo(18 + n, 0); ctx.lineTo(2, -5 - n * .3);
+  ctx.lineTo(5, 0); ctx.lineTo(2, 5 + n * .3); ctx.closePath(); ctx.fill();
+  for (var i = 0; i < n; i++) {
+    var x = -26 - i * 13;
+    ctx.strokeStyle = i % 2 ? '#fff4ac' : '#9cffff'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x - 4, 0); ctx.lineTo(x, -3);
+    ctx.lineTo(x + 4, 0); ctx.lineTo(x, 3); ctx.closePath(); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawGatlingMuzzle(ctx, dx, dy, t, n) {
+  ctx.save();
+  ctx.translate(BOW.x, BOW.y); ctx.rotate(Math.atan2(dy, dx));
+  ctx.globalCompositeOperation = 'lighter';
+  var pulse = 1 + Math.sin(t * 24) * .08;
+  var halo = ctx.createRadialGradient(28, 0, 0, 28, 0, 26 + n * 2);
+  halo.addColorStop(0, 'rgba(220,255,255,.85)');
+  halo.addColorStop(.3, 'rgba(49,226,255,.42)');
+  halo.addColorStop(1, 'rgba(24,118,255,0)');
+  ctx.fillStyle = halo; ctx.fillRect(-10, -40, 80, 80);
+  ctx.strokeStyle = '#87faff'; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.ellipse(29, 0, 5 * pulse, (10 + n) * pulse, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = '#eaffff';
+  ctx.beginPath(); ctx.moveTo(17, -3); ctx.lineTo(47 + n * 2, 0); ctx.lineTo(17, 3); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
 function drawArrowEnt(ctx, a) {
   ctx.save();
   ctx.translate(a.x, a.y);
   ctx.rotate(a.rot);
   var upgradeLevel = a.upgradeLevel || 0;
+  if (a.type === 'gatling') { drawGatlingLaser(ctx, a); ctx.restore(); return; }
   if (upgradeLevel > 0 && typeof getArrowUpgradePath === 'function') {
     var upgradePath = getArrowUpgradePath(a.type);
     ctx.save();

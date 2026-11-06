@@ -4,11 +4,18 @@
 
 Castle Rangers is a browser-based castle-defense game. Aim and fire magical arrows, earn coins, upgrade your armory, and defend your keep through 300 rounds. Player profiles keep progress between updates, and the global leaderboard tracks scores, levels, arrows fired, cumulative kills, and active playtime.
 
-### Latest update — V35
+### Latest update — V38
 
-- Restores the complete V33 game files after V34 published an incomplete game script. V35 uses fresh asset URLs so browsers automatically load the restored build.
+- **Gatling Launcher finale:** Increases base arrow damage from 9 to 32 and doubles automatic fire from about 8 to 17 shots per second. Straight laser arrows ignore armor and shields, pierce three enemies (five with upgrades), and hit bosses and castles harder. Adds layered cyan and white trails, upgrade plasma rails, a muzzle halo, and compact energy impacts. Fast-arrow collision checks prevent shots skipping targets at lower frame rates.
 
 ## Previous updates
+
+- **V37 — Scenic skies:** Adds animated menu birds and fireflies, a glowing title, vibrant sunsets, Prism Sunset and Emberfall maps, and occasional meteors.
+- **V36 — Cumulative score and header:** Saves round scores as an account total and keeps the leaderboard headings opaque while scrolling.
+
+### V35
+
+- Restores the complete V33 game files after V34 published an incomplete game script. V35 uses fresh asset URLs so browsers automatically load the restored build.
 
 - **V34 — Reverted:** Its incomplete game script was rolled back in V35.
 

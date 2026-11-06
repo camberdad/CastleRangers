@@ -394,7 +394,7 @@ var ARROW_UPGRADE_PATHS = {
   holy: { cost: 430, color: '#fff08a', motif: 'star', names: ['Sanctified Edge', 'Sun Sigil', 'Judgement', 'Seraphic Lance', 'Divine Cataclysm'], effects: ['More damage to bosses', 'Radiant bolt pierces another foe', 'Boss smite grows stronger', 'Holy light pierces a full rank', 'Devastating judgement against bosses'] },
   sunder: { cost: 520, color: '#ff9f52', motif: 'hammer', names: ['Maul Core', 'Fracture Rune', 'Cataclysm', 'Ruinous Impact', 'Worldshatter'], effects: ['Wider blast and armor fracture', 'Fracture lasts longer', 'Impact deals heavier splash damage', 'Larger explosion and deeper fracture', 'Crushing blast shatters armor'] },
   leech: { cost: 390, color: '#ff58a9', motif: 'orbit', names: ['Sanguine Seal', 'Deep Siphon', 'Crimson Tide', 'Life Devourer', 'Eternal Hunger'], effects: ['Siphons more health', 'Longer reach and stronger healing', 'Adds a blood-rune impact burst', 'Drains more damage into the castle', 'Massive restorative siphon'] },
-  gatling: { cost: 220, color: '#54f5ff', motif: 'coil', names: ['Rapid Coil', 'Twin Dynamo', 'Overclock', 'Storm Feed', 'Infinite Arsenal'], effects: ['Faster single-bolt fire', 'Brighter bolts and faster cycling', 'Overclocked rapid fire', 'Extra speed and bolt power', 'Maximum automatic fire rate'] }
+  gatling: { cost: 220, color: '#54f5ff', motif: 'coil', names: ['Rapid Coil', 'Twin Dynamo', 'Overclock', 'Storm Feed', 'Infinite Arsenal'], effects: ['More damage and faster laser arrows', 'Pierces a fourth enemy with brighter energy trails', 'Overclocked fire with longer cyan laser trails', 'Pierces a fifth enemy with twin plasma rails', 'Maximum fire rate, power and a brilliant white plasma core'] }
 };
 function getArrowUpgradeLevel(id) {
   return clamp(Math.floor(Number(PROGRESS.upgrades && PROGRESS.upgrades[id]) || 0), 0, MAX_ARROW_UPGRADES);
@@ -434,7 +434,7 @@ function getUpgradedArrow(id, level) {
     case 'holy': ar.pierce += Math.floor(n / 2); ar.holyBossMultiplier = 2 + n * 0.22; break;
     case 'sunder': ar.explode.r += n * 18; ar.explode.mult += n * 0.14; ar.sunder.mult += n * 0.09; ar.sunder.dur += n * 0.25; break;
     case 'leech': ar.leech = Math.min(0.95, ar.leech + n * 0.07); ar.leechRange = 90 + n * 28; break;
-    case 'gatling': ar.cadence = Math.max(0.045, ar.cadence * (1 - n * 0.09)); ar.speed *= 1 + n * 0.035; break;
+    case 'gatling': ar.cadence = Math.max(0.03, ar.cadence * (1 - n * 0.1)); ar.speed *= 1 + n * 0.06; ar.dmg *= 1 + n * 0.1; ar.pierce += Math.floor(n / 2); break;
   }
   return ar;
 }
@@ -622,8 +622,8 @@ function autoFire(tx, ty) {
 function solveGatlingAim(tx, ty) {
   var dx = tx - BOW.x, dy = ty - BOW.y;
   var gatling = getUpgradedArrow('gatling', getArrowUpgradeLevel('gatling'));
-  if (dx >= 0) return solveBallistic(tx, ty, gatling.speed);
-  var len = Math.hypot(dx, dy) || 1;
+  var len = Math.hypot(dx, dy);
+  if (len < 1) { dx = 1; dy = 0; len = 1; }
   var speed = 2050 * gatling.speed;
   return { vx: dx / len * speed, vy: dy / len * speed, v: speed };
 }
@@ -766,6 +766,7 @@ function spawnVolley(ar, vx, vy, power) {
       freezeChance: ar.freezeChance || 0, holyBossMultiplier: ar.holyBossMultiplier || 2,
       leechRange: ar.leechRange || 0,
       upgradeLevel: upgradeLevel,
+      hitUids: ar.id === 'gatling' ? Object.create(null) : null,
       power: power, dead: false
     });
     arrowsShot++;
@@ -883,7 +884,20 @@ function spawnLightningStrike(x, y) {
   particles.push({ kind: 'lightning', points: points, life: 0.22, maxLife: 0.22 });
 }
 
+function spawnGatlingImpact(x, y) {
+  particles.push({ kind: 'arcaneRing', x: x, y: y, r: 4, vr: 135,
+    life: 0.16, maxLife: 0.16, tint: '#7dfaff' });
+  for (var i = 0; i < 4; i++) {
+    var angle = i * Math.PI / 2 + ambT * 2;
+    particles.push({ kind: 'arcane', x: x, y: y,
+      vx: Math.cos(angle) * 130, vy: Math.sin(angle) * 130,
+      r: 1.8, rot: angle, spin: 0, life: 0.18, maxLife: 0.18,
+      tint: i % 2 ? '#ffffff' : '#48edff' });
+  }
+}
+
 function spawnArcaneBurst(x, y, type) {
+  if (type === 'gatling') { spawnGatlingImpact(x, y); return; }
   var color = arcaneColor(type);
   if (!color) return;
   particles.push({ kind: 'arcaneRing', x: x, y: y, r: 7, vr: type === 'glacial' ? 260 : 190, life: 0.34, maxLife: 0.34, tint: color });
@@ -901,7 +915,7 @@ function spawnArcaneBurst(x, y, type) {
 }
 
 function spawnUpgradeImpact(x, y, type, level) {
-  if (!level) return;
+  if (!level || type === 'gatling') return;
   var path = getArrowUpgradePath(type);
   var life = 0.32 + level * 0.035;
   particles.push({ kind: 'arcaneRing', x: x, y: y, r: 5 + level * 2, vr: 145 + level * 35,
@@ -1088,7 +1102,8 @@ function step(dt) {
   shake = Math.max(0, shake - dt * 28);
   castleFlash = Math.max(0, castleFlash - dt * 3);
   if (keep) keep.flash = Math.max(0, keep.flash - dt * 3);
-  shotCooldown = Math.max(0, shotCooldown - dt);
+  var firingGatling = state === 'playing' && PROGRESS.equipped === 'gatling' && fireHeld;
+  shotCooldown = Math.max(firingGatling ? -0.1 : 0, shotCooldown - dt);
   if (state === 'playing') update(dt);
 }
 
@@ -1133,8 +1148,15 @@ function update(dt) {
   // Gatling sends one cursor-aimed bolt per cadence while the cursor button is held.
   var eq = PROGRESS.equipped;
   var arEq = ARROWS[eq] || ARROWS.std;
-  if (state === 'playing' && arEq.auto && fireHeld && shotCooldown <= 0) {
-    autoFire(aimX, aimY);
+  if (state === 'playing' && arEq.auto && fireHeld) {
+    // Preserve fractional cooldown so full auto maintains its rate at 30/60/120 FPS.
+    var shotsThisStep = 0;
+    while (shotCooldown <= 0 && shotsThisStep++ < 4) {
+      var carry = shotCooldown;
+      autoFire(aimX, aimY);
+      if (shotCooldown <= 0) break;
+      shotCooldown += carry;
+    }
   }
 
   // castle smoke when badly damaged
@@ -1174,10 +1196,30 @@ function update(dt) {
   }
 }
 
+// Swept collisions keep fast laser arrows from skipping thin targets between frames.
+function segmentBoxHit(x0, y0, x1, y1, left, top, right, bottom) {
+  var near = 0, far = 1;
+  var starts = [x0, y0], deltas = [x1 - x0, y1 - y0];
+  var lows = [left, top], highs = [right, bottom];
+  for (var axis = 0; axis < 2; axis++) {
+    if (Math.abs(deltas[axis]) < 0.000001) {
+      if (starts[axis] < lows[axis] || starts[axis] > highs[axis]) return null;
+    } else {
+      var a = (lows[axis] - starts[axis]) / deltas[axis];
+      var b = (highs[axis] - starts[axis]) / deltas[axis];
+      near = Math.max(near, Math.min(a, b));
+      far = Math.min(far, Math.max(a, b));
+      if (near > far) return null;
+    }
+  }
+  return near;
+}
+
 function updateArrows(dt) {
   for (var i = arrows.length - 1; i >= 0; i--) {
     var a = arrows[i];
-    a.vy += GRAVITY * dt;
+    var previousX = a.x, previousY = a.y;
+    if (a.type !== 'gatling') a.vy += GRAVITY * dt;
     a.x += a.vx * dt;
     a.y += a.vy * dt;
     a.rot = Math.atan2(a.vy, a.vx);
@@ -1236,16 +1278,27 @@ function updateArrows(dt) {
     for (var j = 0; j < enemies.length; j++) {
       var e = enemies[j];
       if (e.state === 'dying') continue;
-      if (e.uid === a.lastHitUid) continue;
-      if (a.x < e.x - 6 || a.x > e.x + e.w + 6) continue;
-      if (a.y < GROUND - e.h - 4 || a.y > GROUND + 2) continue;
+      if (e.uid === a.lastHitUid || (a.hitUids && a.hitUids[e.uid])) continue;
+      var impactX = a.x, impactY = a.y;
+      if (a.type === 'gatling') {
+        var hitTime = segmentBoxHit(previousX, previousY, a.x, a.y,
+          e.x - 6, GROUND - e.h - 4, e.x + e.w + 6, GROUND + 2);
+        if (hitTime === null) continue;
+        impactX = previousX + (a.x - previousX) * hitTime;
+        impactY = previousY + (a.y - previousY) * hitTime;
+        a.hitUids = a.hitUids || Object.create(null);
+        a.hitUids[e.uid] = true;
+      } else {
+        if (a.x < e.x - 6 || a.x > e.x + e.w + 6) continue;
+        if (a.y < GROUND - e.h - 4 || a.y > GROUND + 2) continue;
+      }
 
-      var head = a.y < GROUND - e.h * 0.82;
+      var head = impactY < GROUND - e.h * 0.82;
       var dmg = a.dmg * (0.5 + 0.5 * a.power);
 
-      if (e.def.armor && !a.holy) dmg *= Math.max(0.12, e.def.armor - (e.armorWeak || 0) - (a.armorPierce || 0));
+      if (e.def.armor && !a.holy && a.type !== 'gatling') dmg *= Math.max(0.12, e.def.armor - (e.armorWeak || 0) - (a.armorPierce || 0));
 
-      if (e.def.shield && a.x < e.x + e.w * 0.45) {
+      if (e.def.shield && a.type !== 'gatling' && a.x < e.x + e.w * 0.45) {
         if (Math.random() < 0.45) {
           spawnSparks(a.x, a.y);
           Sound.block();
@@ -1263,6 +1316,8 @@ function updateArrows(dt) {
       } else {
         Sound.hit();
       }
+
+      if (a.type === 'gatling' && e.def.boss) dmg *= 1.8;
 
       // holy bolts shred bosses
       if (a.holy && e.def.boss) {
@@ -1355,8 +1410,8 @@ function updateArrows(dt) {
 
       var boom = a.explode;
       damageEnemy(e, dmg, { head: head, arrow: a });
-      spawnArcaneBurst(a.x, a.y, a.type);
-      spawnUpgradeImpact(a.x, a.y, a.type, a.upgradeLevel || 0);
+      spawnArcaneBurst(impactX, impactY, a.type);
+      spawnUpgradeImpact(impactX, impactY, a.type, a.upgradeLevel || 0);
 
       // Lightning Shot calls repeated bolts down onto nearby living monsters.
       if (a.lightning && !boom) {
@@ -1482,7 +1537,7 @@ function updateArrows(dt) {
       if (a.pierceLeft > 0) {
         a.pierceLeft--;
         a.lastHitUid = e.uid;
-        a.dmg *= 0.75;
+        a.dmg *= a.type === 'gatling' ? 0.9 : 0.75;
         continue;
       }
       consumed = true;
@@ -1491,22 +1546,28 @@ function updateArrows(dt) {
     if (consumed) { arrows.splice(i, 1); continue; }
 
     // enemy keep (second objective) — arrows lodge in the stonework
-    if (keep && !keep.destroyed &&
-        a.x >= KEEP_BOX.x && a.x <= KEEP_BOX.x + KEEP_BOX.w &&
-        a.y >= KEEP_BOX.top && a.y <= GROUND) {
-      var kdmg = a.dmg * (0.5 + 0.5 * a.power);
+    var keepHitTime = keep && !keep.destroyed && a.type === 'gatling'
+      ? segmentBoxHit(previousX, previousY, a.x, a.y, KEEP_BOX.x, KEEP_BOX.top, KEEP_BOX.x + KEEP_BOX.w, GROUND) : null;
+    if (keep && !keep.destroyed && (keepHitTime !== null ||
+        (a.x >= KEEP_BOX.x && a.x <= KEEP_BOX.x + KEEP_BOX.w &&
+        a.y >= KEEP_BOX.top && a.y <= GROUND))) {
+      if (keepHitTime !== null) {
+        a.x = previousX + (a.x - previousX) * keepHitTime;
+        a.y = previousY + (a.y - previousY) * keepHitTime;
+      }
+      var kdmg = a.dmg * (0.5 + 0.5 * a.power) * (a.type === 'gatling' ? 1.6 : 1);
       damageKeep(kdmg, a.x, a.y);
       spawnArcaneBurst(a.x, a.y, a.type);
       spawnUpgradeImpact(a.x, a.y, a.type, a.upgradeLevel || 0);
       spawnSparks(a.x, a.y);
       Sound.buildHit();
-      if (!a.explode) {
+      if (!a.explode && a.type !== 'gatling') {
         keep.stuck.push({
           x: a.x, y: a.y, rot: a.rot,
           fletch: arrowFletchColor(a.type)
         });
         if (keep.stuck.length > 26) keep.stuck.shift();
-      } else {
+      } else if (a.explode) {
         explodeAt(a.x, a.y, a);
       }
       arrows.splice(i, 1);
@@ -1518,7 +1579,7 @@ function updateArrows(dt) {
       spawnArcaneBurst(a.x, GROUND - 6, a.type);
       spawnUpgradeImpact(a.x, GROUND - 6, a.type, a.upgradeLevel || 0);
       if (a.explode && a.x > WALL_W + 6) explodeAt(a.x, GROUND - 6, a);
-      else if (a.x > WALL_W + 6) {
+      else if (a.type !== 'gatling' && a.x > WALL_W + 6) {
         stuck.push({
           x: a.x, y: GROUND - 1,
           rot: clamp(a.rot, 0.5, 1.25),
@@ -1531,7 +1592,7 @@ function updateArrows(dt) {
       continue;
     }
     // offscreen
-    if (a.x > W + 90 || a.x < -90 || a.y > H + 40) arrows.splice(i, 1);
+    if (a.x > W + 90 || a.x < -90 || a.y > H + 40 || (a.type === 'gatling' && a.y < -90)) arrows.splice(i, 1);
   }
 }
 
@@ -1813,6 +1874,10 @@ function render() {
   // arrows in flight
   for (var i = 0; i < arrows.length; i++) drawArrowEnt(ctx, arrows[i]);
 
+  if (state === 'playing' && PROGRESS.equipped === 'gatling' && fireHeld) {
+    drawGatlingMuzzle(ctx, aimDX, aimDY, ambT, getArrowUpgradeLevel('gatling'));
+  }
+
   // particles
   for (var i = 0; i < particles.length; i++) {
     var p = particles[i];
@@ -1892,7 +1957,7 @@ function render() {
     var sdt = 1 / 90;
     ctx.fillStyle = 'rgba(255,255,255,.75)';
     for (var s = 0; s < 130; s++) {
-      vy += GRAVITY * sdt;
+      if (PROGRESS.equipped !== 'gatling') vy += GRAVITY * sdt;
       px += vx * sdt;
       py += vy * sdt;
       if (py >= GROUND || px > W + 40) break;
