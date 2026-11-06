@@ -572,7 +572,7 @@ function updateAimFrom(px, py) {
   if (len > 8) { aimDX = dx / len; aimDY = dy / len; }
 }
 
-function isAuto() { return SETTINGS.shootStyle !== 'drag'; }
+function isAuto() { return PROGRESS.equipped === 'gatling' || SETTINGS.shootStyle !== 'drag'; }
 
 /* Solve a launch velocity from the bow that passes through (tx, ty).
    Low-arc solution; raises speed until the point is reachable.
