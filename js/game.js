@@ -57,8 +57,15 @@ var stormFlashTimer = 0;
 var ambT = 0, introT = 0, lastWaveShown = 0;
 var fpsCount = 0, fpsTime = 0;
 var MAXPULL = 188;
-var MAP_THEMES = ['day', 'dawn', 'sunset', 'sunsetGold', 'sunsetRose', 'sunsetEmber', 'violetDusk', 'night', 'moonlit', 'aurora', 'storm'];
+var MAP_THEMES = ['day', 'dawn', 'sunset', 'sunsetGold', 'sunsetRose', 'sunsetEmber', 'prismSunset', 'emberfall', 'violetDusk', 'night', 'moonlit', 'aurora', 'storm'];
 var lastMapTheme = '';
+var titleTheme = 'sunsetGold';
+
+function chooseTitleTheme() {
+  var scenicThemes = ['sunsetGold', 'sunsetRose', 'sunsetEmber', 'prismSunset', 'emberfall', 'dawn', 'aurora'];
+  var choices = scenicThemes.filter(function (theme) { return theme !== titleTheme; });
+  titleTheme = choices[Math.floor(Math.random() * choices.length)] || scenicThemes[0];
+}
 
 function chooseMapTheme() {
   var options = MAP_THEMES.filter(function (theme) { return theme !== lastMapTheme; });
@@ -71,6 +78,7 @@ function diff() { return DIFFS[SETTINGS.difficulty] || DIFFS.normal; }
 
 /* ================= NAVIGATION ================= */
 function showTitle() {
+  chooseTitleTheme();
   state = 'title';
   hideAllScreens(); hide(el.hud);
   show($('screen-title'));
@@ -1763,12 +1771,13 @@ function render() {
   ctx.setTransform(VIEW_SCALE, 0, 0, VIEW_SCALE, 0, 0);
   ctx.clearRect(0, 0, W, H);
 
-  var theme = level ? level.theme : 'day';
+  var theme = level ? level.theme : (state === 'title' ? titleTheme : 'day');
   var sh = (SETTINGS.shake && shake > 0.2) ? shake : 0;
   if (sh > 0) ctx.translate((Math.random() - 0.5) * sh * 2, (Math.random() - 0.5) * sh * 2);
 
   drawBackground(ctx, theme, ambT);
   drawGround(ctx, theme);
+  if (state === 'title') drawTitleAmbience(ctx, ambT);
 
   // stuck arrows
   for (var i = 0; i < stuck.length; i++) drawStuckArrow(ctx, stuck[i]);
