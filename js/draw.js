@@ -29,7 +29,7 @@ var THEMES = {
     cloud: 'rgba(255,255,255,.88)', cloudShade: 'rgba(210,225,235,.9)', night: false, rain: false
   },
   sunset: {
-    skyTop: '#3d2f66', skyBot: '#f0914e', sun: '#ffd9a0', glow: 'rgba(255,170,90,.55)',
+    skyTop: '#30204f', skyBot: '#ff7b46', sun: '#fff0bd', glow: 'rgba(255,139,72,.68)', haze: 'rgba(255,112,73,.24)', rays: 'rgba(255,204,133,.40)', sunset: true,
     sunX: 1262, sunY: 375, sunR: 64, stars: false,
     mtFar: '#6b5482', mtNear: '#54406b', hillFar: '#6b6340', hillNear: '#4f5231',
     ground: '#6f7a38', groundBot: '#4a4f24', tree: '#40542a', treeDark: '#2f3f20',
@@ -43,21 +43,21 @@ var THEMES = {
     cloud: 'rgba(255,226,211,.8)', cloudShade: 'rgba(215,161,157,.65)', night: false, rain: false
   },
   sunsetGold: {
-    skyTop: '#493260', skyBot: '#f5a14f', sun: '#ffe2a6', glow: 'rgba(255,177,86,.58)',
+    skyTop: '#382451', skyBot: '#ff9a43', sun: '#fff0bd', glow: 'rgba(255,170,75,.72)', haze: 'rgba(255,140,70,.28)', rays: 'rgba(255,223,148,.42)', sunset: true,
     sunX: 1510, sunY: 365, sunR: 69, stars: false,
     mtFar: '#715477', mtNear: '#574565', hillFar: '#766640', hillNear: '#565233',
     ground: '#778044', groundBot: '#484c2a', tree: '#435a30', treeDark: '#314326',
     cloud: 'rgba(255,209,163,.76)', cloudShade: 'rgba(188,119,112,.68)', night: false, rain: false
   },
   sunsetRose: {
-    skyTop: '#37325f', skyBot: '#ee829b', sun: '#ffd0c4', glow: 'rgba(255,126,166,.48)',
+    skyTop: '#302759', skyBot: '#ff7aab', sun: '#ffe0d5', glow: 'rgba(255,120,183,.68)', haze: 'rgba(255,104,164,.25)', rays: 'rgba(255,204,217,.38)', sunset: true,
     sunX: 1080, sunY: 390, sunR: 60, stars: false,
     mtFar: '#675477', mtNear: '#504261', hillFar: '#77634c', hillNear: '#574b39',
     ground: '#6d7544', groundBot: '#454b2d', tree: '#405534', treeDark: '#2f4228',
     cloud: 'rgba(255,200,215,.7)', cloudShade: 'rgba(170,113,151,.62)', night: false, rain: false
   },
   sunsetEmber: {
-    skyTop: '#271d3e', skyBot: '#f07846', sun: '#ffc478', glow: 'rgba(255,104,56,.55)',
+    skyTop: '#211633', skyBot: '#ff623c', sun: '#ffd878', glow: 'rgba(255,91,47,.72)', haze: 'rgba(255,76,51,.27)', rays: 'rgba(255,183,93,.38)', sunset: true,
     sunX: 710, sunY: 415, sunR: 72, stars: false,
     mtFar: '#53374f', mtNear: '#412e43', hillFar: '#6d5038', hillNear: '#4b3b2a',
     ground: '#665b35', groundBot: '#3e3c25', tree: '#3d4928', treeDark: '#2b351e',
@@ -97,6 +97,22 @@ var THEMES = {
     mtFar: '#294b60', mtNear: '#203c51', hillFar: '#35594b', hillNear: '#274739',
     ground: '#345543', groundBot: '#20392f', tree: '#1f4032', treeDark: '#152e27',
     cloud: 'rgba(111,199,202,.24)', cloudShade: 'rgba(42,107,124,.32)', night: true, rain: false
+  },
+  prismSunset: {
+    skyTop: '#21143f', skyBot: '#ff6fae', sun: '#fff0b0', glow: 'rgba(255,120,199,.72)',
+    haze: 'rgba(255,104,190,.27)', rays: 'rgba(255,211,244,.4)', sunset: true,
+    sunX: 980, sunY: 350, sunR: 66, stars: false,
+    mtFar: '#72508f', mtNear: '#523d78', hillFar: '#9b586f', hillNear: '#5f3e59',
+    ground: '#596344', groundBot: '#303d31', tree: '#344d39', treeDark: '#25352f',
+    cloud: 'rgba(255,203,242,.82)', cloudShade: 'rgba(154,106,178,.68)', night: false, rain: false
+  },
+  emberfall: {
+    skyTop: '#182541', skyBot: '#ff8d48', sun: '#fff1ae', glow: 'rgba(255,137,67,.72)',
+    haze: 'rgba(255,120,60,.28)', rays: 'rgba(255,208,122,.42)', sunset: true,
+    sunX: 520, sunY: 360, sunR: 58, stars: true,
+    mtFar: '#5a426e', mtNear: '#45365d', hillFar: '#72533d', hillNear: '#453b31',
+    ground: '#59623c', groundBot: '#303b2b', tree: '#304532', treeDark: '#213329',
+    cloud: 'rgba(255,205,160,.78)', cloudShade: 'rgba(140,91,126,.68)', night: true, rain: false
   }
 };
 
@@ -154,7 +170,28 @@ function drawBackground(ctx, themeName, t) {
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, W, GROUND);
 
-  // stars
+  // Sunset haze and slow, warm sunbeams brighten the valley without obscuring play.
+  if (th.sunset) {
+    var haze = ctx.createRadialGradient(th.sunX, GROUND - 112, 10, th.sunX, GROUND - 112, 820);
+    haze.addColorStop(0, th.haze || 'rgba(255,145,90,.2)');
+    haze.addColorStop(1, 'rgba(255,145,90,0)');
+    ctx.fillStyle = haze;
+    ctx.fillRect(0, GROUND - 330, W, 330);
+    ctx.save();
+    ctx.globalAlpha = 0.06 + 0.025 * Math.sin(t * 0.35);
+    ctx.strokeStyle = th.rays || 'rgba(255,210,150,.35)';
+    ctx.lineWidth = 24;
+    for (var ray = -3; ray <= 3; ray++) {
+      var angle = -1.18 + ray * 0.34;
+      ctx.beginPath();
+      ctx.moveTo(th.sunX, th.sunY);
+      ctx.lineTo(th.sunX + Math.cos(angle) * 920, th.sunY + Math.sin(angle) * 660);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Stars
   if (th.stars) {
     for (var i = 0; i < STARS.length; i++) {
       var s = STARS[i];
@@ -164,6 +201,23 @@ function drawBackground(ctx, themeName, t) {
       ctx.fillRect(s.x, s.y, s.r, s.r);
     }
     ctx.globalAlpha = 1;
+
+    // A rare meteor crosses the night sky every so often.
+    var meteor = (t + 4.2) % 24;
+    if (meteor < 0.85) {
+      var progress = meteor / 0.85;
+      ctx.save();
+      ctx.globalAlpha = Math.sin(progress * Math.PI) * 0.85;
+      ctx.strokeStyle = '#dff8ff';
+      ctx.shadowColor = '#a4ddff';
+      ctx.shadowBlur = 14;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(760 + progress * 360, 65 + progress * 150);
+      ctx.lineTo(715 + progress * 360, 82 + progress * 150);
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   if (th.aurora) {
@@ -186,13 +240,15 @@ function drawBackground(ctx, themeName, t) {
   }
 
   // sun / moon
-  var grd = ctx.createRadialGradient(th.sunX, th.sunY, th.sunR * 0.2, th.sunX, th.sunY, th.sunR * 2.6);
+  var sunBob = th.sunset ? Math.sin(t * 0.12) * 3 : 0;
+  var sunY = th.sunY + sunBob;
+  var grd = ctx.createRadialGradient(th.sunX, sunY, th.sunR * 0.2, th.sunX, sunY, th.sunR * 2.6);
   grd.addColorStop(0, th.glow);
   grd.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = grd;
   ctx.fillRect(th.sunX - th.sunR * 3, th.sunY - th.sunR * 3, th.sunR * 6, th.sunR * 6);
   ctx.fillStyle = th.sun;
-  ctx.beginPath(); ctx.arc(th.sunX, th.sunY, th.sunR, 0, 6.2832); ctx.fill();
+  ctx.beginPath(); ctx.arc(th.sunX, sunY, th.sunR, 0, 6.2832); ctx.fill();
 
   // clouds
   for (var i = 0; i < CLOUDS.length; i++) {
@@ -244,6 +300,40 @@ function drawBackground(ctx, themeName, t) {
     var tx = tr.x, ty = hillY(tx) + 32 - tr.d * 7;
     drawTree(ctx, tx, ty, 16 * tr.sc + 8, th.treeDark, th.tree);
   }
+}
+
+function drawTitleAmbience(ctx, t) {
+  // Slow bird silhouettes drift across the open sky above the menu.
+  ctx.save();
+  ctx.lineCap = 'round';
+  for (var i = 0; i < 6; i++) {
+    var phase = (t * (15 + i * 1.3) + i * 207) % (W + 180);
+    var x = phase - 90;
+    var y = 112 + Math.sin(t * 0.42 + i * 1.7) * 19 + (i % 3) * 34;
+    var size = 0.55 + (i % 3) * 0.17;
+    ctx.strokeStyle = 'rgba(35,25,49,.72)';
+    ctx.lineWidth = 2.3 * size;
+    ctx.beginPath();
+    ctx.moveTo(x - 10 * size, y);
+    ctx.quadraticCurveTo(x - 5 * size, y - 7 * size, x, y);
+    ctx.quadraticCurveTo(x + 5 * size, y - 7 * size, x + 10 * size, y);
+    ctx.stroke();
+  }
+  // A few warm fireflies make the foreground feel alive while the player waits.
+  ctx.globalCompositeOperation = 'lighter';
+  for (var j = 0; j < 18; j++) {
+    var fx = (j * 157 + t * (7 + (j % 4) * 2.5)) % W;
+    var fy = GROUND + 24 + ((j * 43) % 116) + Math.sin(t * 1.1 + j) * 8;
+    var pulse = 0.35 + 0.5 * (0.5 + 0.5 * Math.sin(t * 2 + j * 1.9));
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = j % 3 === 0 ? '#a9f4b0' : '#ffd778';
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.shadowBlur = 9;
+    ctx.beginPath();
+    ctx.arc(fx, fy, 1.1 + (j % 3) * 0.35, 0, 6.2832);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 function drawCloud(ctx, x, y, sc, th) {
