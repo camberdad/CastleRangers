@@ -167,11 +167,13 @@ function buildHighScores(scores, online, reason) {
   var note = document.createElement('div');
   note.className = 'hsNote';
   if (online) {
-    note.textContent = 'Global board — cumulative kills and total playtime sync about every 5 seconds during active play.';
+    note.textContent = 'Global board — cumulative kills and total playtime sync about every 30 seconds during active play.';
+  } else if (Leaderboard.configured() && reason === 'quota') {
+    note.textContent = 'Daily global board limit reached — scores are saved on this device and will upload automatically.';
   } else if (Leaderboard.configured()) {
     note.textContent = 'Could not reach the global board — showing this device’s local scores.';
   } else {
-    note.textContent = 'Offline board — showing this device’s scores. (Add a jsonbin.io Bin ID + key in js/leaderboard.js to share scores globally.)';
+    note.textContent = 'Offline board — showing this device’s scores. (Add a Firebase project ID in js/leaderboard.js to share scores globally.)';
   }
   board.appendChild(note);
 
@@ -334,7 +336,7 @@ function submitScore(won, stars) {
   try {
     Leaderboard.submit(entry, function (ok) {
       if (ok) toast('Score posted to the global board!');
-      else if (Leaderboard.configured()) toast('Score saved (global board offline).');
+      else if (Leaderboard.configured()) toast('Score saved on this device — it will upload to the global board automatically.');
     });
   } catch (e) { /* never let scoring break the game */ }
 }

@@ -1,0 +1,73 @@
+rules_version = '2';
+// Firebase project tankshot-b4d94 — High Scores for TankShot AND Castle Rangers.
+// Paste this whole file into Firebase console -> Firestore Database -> Rules -> Publish.
+// (Publishing replaces every rule in the project, so both games' rules live here.)
+// Anyone may read the boards. A player document can be created with valid values and
+// afterwards only raised; nothing can be deleted.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------- TankShot ----------------
+    match /tankshot_scores/{nameId} {
+      function validTank() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['game', 'name', 'nameLower', 'highestMissionCompleted', 'totalKills', 'shots', 'score', 't'])
+          && d.game == 'TankShot'
+          && d.name is string && d.name.size() >= 1 && d.name.size() <= 16
+          && d.nameLower == d.name.lower() && nameId == d.nameLower
+          && d.highestMissionCompleted is int && d.highestMissionCompleted >= 0 && d.highestMissionCompleted <= 100
+          && d.totalKills is int && d.totalKills >= 0 && d.totalKills <= 10000000
+          && d.shots is int && d.shots >= 0
+          && d.score == d.totalKills * 100 + d.highestMissionCompleted * 500
+          && d.t is int;
+      }
+      allow read: if true;
+      allow create: if validTank();
+      allow update: if validTank()
+        && request.resource.data.highestMissionCompleted >= resource.data.highestMissionCompleted
+        && request.resource.data.totalKills >= resource.data.totalKills;
+      allow delete: if false;
+    }
+
+    // ---------------- Castle Rangers ----------------
+    match /castlerangers_scores/{docId} {
+      function optInt(v, hi) { return v == null || (v is int && v >= 0 && v <= hi); }
+      function validCastle() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['game', 'name', 'nameLower', 'score', 'gold', 'level', 'levelsCompleted',
+                                 'stars', 'kills', 'shots', 'timePlayed', 'arrow', 'diff', 'won', 'active', 't'])
+          && d.keys().hasAll(['game', 'name', 'nameLower', 'score', 'gold', 'level', 'kills', 't'])
+          && d.game == 'CastleRangers'
+          && d.name is string && d.name.size() >= 1 && d.name.size() <= 16
+          && d.nameLower == d.name.lower()
+          && docId == 'p_' + d.nameLower.replace('/', '|')
+          && d.score is int && d.score >= 0 && d.score <= 9999999
+          && d.gold is int && d.gold >= 0 && d.gold <= 9999999
+          && d.level is int && d.level >= 1 && d.level <= 1000
+          && optInt(d.get('levelsCompleted', null), 1000)
+          && optInt(d.get('stars', null), 3)
+          && d.kills is int && d.kills >= 0 && d.kills <= 1000000000
+          && optInt(d.get('shots', null), 100000000)
+          && optInt(d.get('timePlayed', null), 1000000000)
+          && (!('arrow' in d) || (d.arrow is string && d.arrow.size() <= 12))
+          && (!('diff' in d) || (d.diff is string && d.diff.size() <= 10))
+          && (!('won' in d) || d.won is bool)
+          && (!('active' in d) || d.active is bool)
+          && d.t is int;
+      }
+      allow read: if true;
+      allow create: if validCastle();
+      allow update: if validCastle()
+        && request.resource.data.score >= resource.data.score
+        && request.resource.data.level >= resource.data.level
+        && request.resource.data.kills >= resource.data.kills
+        && (resource.data.get('timePlayed', null) == null
+            || request.resource.data.get('timePlayed', 0) >= resource.data.timePlayed);
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -4,12 +4,13 @@
 
 Castle Rangers is a browser-based castle-defense game. Aim and fire magical arrows, earn coins, upgrade your armory, and defend your keep through 300 rounds. Player profiles keep progress between updates, and the global leaderboard tracks scores, levels, arrows fired, cumulative kills, and active playtime.
 
-### Latest update — V38
+### Latest update — V39
 
-- **Gatling Launcher finale:** Increases base arrow damage from 9 to 32 and doubles automatic fire from about 8 to 17 shots per second. Straight laser arrows ignore armor and shields, pierce three enemies (five with upgrades), and hit bosses and castles harder. Adds layered cyan and white trails, upgrade plasma rails, a muzzle halo, and compact energy impacts. Fast-arrow collision checks prevent shots skipping targets at lower frame rates.
+- **Google Firebase high scores:** The global leaderboard moves from JSONBin (which ran out of free requests) to Google Firebase Cloud Firestore. Each player now has one small record, so saving a score is a single write instead of re-uploading the whole board. Live kills and playtime sync about every 30 seconds. Scores that cannot upload stay on the device and send automatically later, and each device re-uploads its own players' saved scores the first time it runs V39.
 
 ## Previous updates
 
+- **V38 — Gatling Launcher finale:** Increases base arrow damage from 9 to 32 and doubles automatic fire from about 8 to 17 shots per second. Straight laser arrows ignore armor and shields, pierce three enemies (five with upgrades), and hit bosses and castles harder. Adds layered cyan and white trails, upgrade plasma rails, a muzzle halo, and compact energy impacts. Fast-arrow collision checks prevent shots skipping targets at lower frame rates.
 - **V37 — Scenic skies:** Adds animated menu birds and fireflies, a glowing title, vibrant sunsets, Prism Sunset and Emberfall maps, and occasional meteors.
 - **V36 — Cumulative score and header:** Saves round scores as an account total and keeps the leaderboard headings opaque while scrolling.
 
@@ -84,7 +85,8 @@ The project is published from the `main` branch of `camberdad/CastleRangers`. Gi
 - `js/data.js` — arrow definitions, enemies, and 300-round campaign
 - `js/audio.js` — sound effects
 - `js/draw.js` — rendering
-- `js/leaderboard.js` — local and global leaderboard sync
+- `js/leaderboard.js` — local and global leaderboard sync (Google Firebase Cloud Firestore)
+- `firestore.rules` — Firestore security rules for the global leaderboard
 - `js/game.js` — game loop, combat, and interface
 - `js/version-check.js` / `version.json` — version and update check
 
